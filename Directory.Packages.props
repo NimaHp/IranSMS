@@ -11,6 +11,9 @@
     <!-- DI (optional package) -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
 
+    <!-- Providers -->
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
+
     <!-- Test dependencies -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />

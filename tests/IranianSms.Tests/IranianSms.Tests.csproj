@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Tests exercise old-style code paths; do not fail the build on code-style rules. -->
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\IranianSms.Core\IranianSms.Core.csproj" />
     <ProjectReference Include="..\..\src\IranianSms.DependencyInjection\IranianSms.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\IranianSms.Providers.Kavenegar\IranianSms.Providers.Kavenegar.csproj" />
   </ItemGroup>
 
 </Project>
