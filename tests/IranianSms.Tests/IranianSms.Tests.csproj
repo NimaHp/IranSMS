@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\IranianSms.Core\IranianSms.Core.csproj" />
     <ProjectReference Include="..\..\src\IranianSms.DependencyInjection\IranianSms.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\IranianSms.Providers.Kavenegar\IranianSms.Providers.Kavenegar.csproj" />
+    <ProjectReference Include="..\..\src\IranianSms.Providers.SmsIr\IranianSms.Providers.SmsIr.csproj" />
   </ItemGroup>
 
 </Project>
