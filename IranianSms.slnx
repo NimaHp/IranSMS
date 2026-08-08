@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/IranianSms.Core/IranianSms.Core.csproj" />
+    <Project Path="src/IranianSms.DependencyInjection/IranianSms.DependencyInjection.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IranianSms.Tests/IranianSms.Tests.csproj" />
+    <Project Path="tests/IranianSms.NetStandard2.0Consumer/IranianSms.NetStandard2.0Consumer.csproj" />
+  </Folder>
+</Solution>

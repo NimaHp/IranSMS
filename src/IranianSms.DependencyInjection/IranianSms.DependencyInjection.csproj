@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>IranianSms.DependencyInjection</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Optional Microsoft.Extensions.DependencyInjection integration for IranianSms (register provider clients via AddIranianSms).</Description>
+    <PackageTags>sms;iranian;dependency-injection;di</PackageTags>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IranianSms.Core\IranianSms.Core.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>

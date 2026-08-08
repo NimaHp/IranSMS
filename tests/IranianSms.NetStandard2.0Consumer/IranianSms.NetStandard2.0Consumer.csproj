@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Compile-time consumer guard: verifies the Core public API surface is
+       consumable from netstandard2.0 without any polyfill/C#-12 dependency. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Deliberate: this guard project mimics an old-style consumer —
+         global usings must NOT leak in from Directory.Build.props. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IranianSms.Core\IranianSms.Core.csproj" />
+  </ItemGroup>
+
+</Project>

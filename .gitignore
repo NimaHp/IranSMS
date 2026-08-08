@@ -1,0 +1,48 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+packages/
+*.nupkg
+*.snupkg
+
+## NuGet
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.assets.json
+
+## Test results
+TestResults/
+
+## Benchmark
+BenchmarkDotNet.Artifacts/
+
+## Coverage
+*.coverage
+coverage/
+coverage.json
+lcov.info
+*.cobertura.xml
+*.opencover.xml
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## OS
+Thumbs.db
+.DS_Store
+
+## OpenWork
+.opencode/
+
+## Local-only machine overrides (never shipped)
+/Directory.Local.props
+
+## Python helper scripts
+__pycache__/

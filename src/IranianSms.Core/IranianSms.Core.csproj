@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>IranianSms</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Provider-agnostic core abstraction for Iranian SMS services (Kavenegar, SMS.ir, Melipayamak, Ghasedak, ...).</Description>
+    <PackageTags>sms;iranian;kavenegar;melipayamak;ghasedak;smsir</PackageTags>
+  </PropertyGroup>
+
+</Project>
