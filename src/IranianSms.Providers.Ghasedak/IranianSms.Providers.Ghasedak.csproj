@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>IranianSms.Providers.Ghasedak</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IranianSms.Core\IranianSms.Core.csproj" />
+    <PackageReference Include="System.Text.Json" />
+    <InternalsVisibleTo Include="IranianSms.Tests" />
+  </ItemGroup>
+
+</Project>
