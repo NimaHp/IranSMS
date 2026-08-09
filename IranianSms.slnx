@@ -9,6 +9,7 @@
     <Project Path="src/IranianSms.DependencyInjection/IranianSms.DependencyInjection.csproj" />
     <Project Path="src/IranianSms.Providers.Kavenegar/IranianSms.Providers.Kavenegar.csproj" />
     <Project Path="src/IranianSms.Providers.SmsIr/IranianSms.Providers.SmsIr.csproj" />
+    <Project Path="src/IranianSms.Providers.Melipayamak/IranianSms.Providers.Melipayamak.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/IranianSms.Tests/IranianSms.Tests.csproj" />
