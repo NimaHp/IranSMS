@@ -5,7 +5,7 @@ namespace IranianSms.Providers.SmsIr
 {
     /// <summary>
     /// Real SMS.ir transport backed by <see cref="HttpClient"/>.
-    /// Sends JSON to https://api.sms.ir/v1/{path} with the X-API-KEY header.
+    /// Sends HTTP calls to https://api.sms.ir/v1/{path} with the X-API-KEY header.
     /// </summary>
     internal sealed class SmsIrHttpTransport : ISmsIrTransport
     {
@@ -23,44 +23,50 @@ namespace IranianSms.Providers.SmsIr
         }
 
         /// <inheritdoc />
-        public async Task<string> PostJsonAsync(
+        public Task<string> PostJsonAsync(
             string path,
-            string? jsonBody,
+            string jsonBody,
+            CancellationToken cancellationToken)
+        {
+            var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+            return SendAsync(HttpMethod.Post, path, content, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public Task<string> GetAsync(string path, CancellationToken cancellationToken)
+            => SendAsync(HttpMethod.Get, path, content: null, cancellationToken);
+
+        private async Task<string> SendAsync(
+            HttpMethod method,
+            string path,
+            HttpContent? content,
             CancellationToken cancellationToken)
         {
             var url = $"{BaseUrl}/{path}";
-            HttpContent? content = null;
-            if (jsonBody != null)
-            {
-                content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
-            }
 
             using (content)
+            using (var request = new HttpRequestMessage(method, url))
             {
-                using (var request = new HttpRequestMessage(
-                    jsonBody == null ? HttpMethod.Get : HttpMethod.Post, url))
+                request.Headers.Add("X-API-KEY", _apiKey);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                if (content != null)
+                    request.Content = content;
+
+                using (var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
-                    request.Headers.Add("X-API-KEY", _apiKey);
-                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    if (content != null)
-                        request.Content = content;
-
-                    using (var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                    var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
                     {
-                        var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        if (!response.IsSuccessStatusCode)
+                        throw new IranianSmsException(
+                            $"SMS.ir HTTP error ({(int)response.StatusCode}): {Truncate(body)}")
                         {
-                            throw new IranianSmsException(
-                                $"SMS.ir HTTP error ({(int)response.StatusCode}): {Truncate(body)}")
-                            {
-                                ProviderName = "SmsIr",
-                                ProviderStatusCode = (int)response.StatusCode,
-                                RawResponseBody = body,
-                            };
-                        }
-
-                        return body;
+                            ProviderName = "SmsIr",
+                            ProviderStatusCode = (int)response.StatusCode,
+                            RawResponseBody = body,
+                        };
                     }
+
+                    return body;
                 }
             }
         }

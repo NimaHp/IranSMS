@@ -7,35 +7,32 @@ namespace IranianSms.Providers.SmsIr
     internal static class SmsIrStatusMapper
     {
         /// <summary>
-        /// Converts a raw SMS.ir delivery status string to a delivery state.
-        /// Unknown or malformed values map to <see cref="MessageDeliveryState.Unknown"/>.
+        /// Converts a raw SMS.ir delivery status byte to a delivery state.
+        /// Unknown or out-of-range values map to <see cref="MessageDeliveryState.Unknown"/>.
         /// </summary>
-        /// <param name="status">The raw status string (e.g. <c>1</c>, <c>Delivered</c>).</param>
+        /// <param name="status">The raw delivery-state byte (1-7 per the official docs).</param>
         /// <returns>The normalized delivery state.</returns>
-        public static MessageDeliveryState ToDeliveryState(string? status)
+        public static MessageDeliveryState ToDeliveryState(byte? status)
         {
-            if (string.IsNullOrWhiteSpace(status))
-                return MessageDeliveryState.Unknown;
-
-            switch (status!.Trim().ToLowerInvariant())
+            switch (status)
             {
-                case "1":
-                case "sent":
-                    return MessageDeliveryState.SentToOperator;
-                case "2":
-                case "delivered":
+                // Official SMS.ir delivery codes:
+                //   1 = delivered to device, 2 = not delivered,
+                //   3 = processing in telecom, 4 = not reached telecom,
+                //   5 = reached telecom, 6 = error, 7 = blacklist.
+                case 1:
                     return MessageDeliveryState.Delivered;
-                case "3":
-                case "failed":
-                case "unsent":
+                case 2:
+                case 4:
+                    return MessageDeliveryState.Undelivered;
+                case 3:
+                case 5:
+                    return MessageDeliveryState.SentToOperator;
+                case 6:
                     return MessageDeliveryState.Failed;
-                case "4":
-                case "canceled":
-                case "cancelled":
-                    return MessageDeliveryState.Cancelled;
-                case "0":
-                case "pending":
-                case "queued":
+                case 7:
+                    return MessageDeliveryState.Blocked;
+                case 0:
                     return MessageDeliveryState.Queued;
                 default:
                     return MessageDeliveryState.Unknown;

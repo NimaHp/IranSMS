@@ -1,13 +1,15 @@
-using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace IranianSms.Providers.SmsIr.Json
 {
     /// <summary>
-    /// The SMS.ir response envelope:
-    /// <c>{ "status": 1, "message": "...", "data": ... }</c>.
+    /// The SMS.ir response envelope: <c>{ "status": 1, "message": "...", "data": ... }</c>.
+    /// <c>Status</c> is 1 on success; <c>Data</c> is a typed model per endpoint.
     /// </summary>
-    internal sealed class SmsIrEnvelope
+    /// <typeparam name="TData">Type of the <c>data</c> payload for the endpoint.</typeparam>
+    internal sealed class SmsIrResponse<TData>
+        where TData : class
     {
         /// <summary>Gets or sets the API status code (1 = success).</summary>
         public int Status { get; set; }
@@ -15,78 +17,126 @@ namespace IranianSms.Providers.SmsIr.Json
         /// <summary>Gets or sets the human-readable status message.</summary>
         public string? Message { get; set; }
 
-        /// <summary>Gets or sets the payload (object or array).</summary>
-        public SmsIrData? Data { get; set; }
+        /// <summary>Gets or sets the typed payload.</summary>
+        public TData? Data { get; set; }
+    }
+
+    /// <summary>Bulk-send request body (POST <c>/v1/send/bulk</c>).</summary>
+    internal sealed class SmsIrBulkSendRequest
+    {
+        /// <summary>The sender line (lineNumber).</summary>
+        [JsonPropertyName("lineNumber")]
+        public long LineNumber { get; set; }
+
+        /// <summary>The message text (messageText).</summary>
+        [JsonPropertyName("messageText")]
+        public string? MessageText { get; set; }
+
+        /// <summary>Recipient mobile numbers (mobiles).</summary>
+        [JsonPropertyName("mobiles")]
+        public string[]? Mobiles { get; set; }
+
+        /// <summary>Optional scheduled send time in Unix seconds (sendDateTime).</summary>
+        [JsonPropertyName("sendDateTime")]
+        public long? SendDateTime { get; set; }
+    }
+
+    /// <summary>Bulk-send return data (packId, messageIds, cost).</summary>
+    internal sealed class SmsIrBulkSendResult
+    {
+        /// <summary>Unique id of the send set (packId).</summary>
+        [JsonPropertyName("packId")]
+        public Guid? PackId { get; set; }
+
+        /// <summary>Per-recipient message ids; null/0 values mark blacklisted or invalid numbers (messageIds).</summary>
+        [JsonPropertyName("messageIds")]
+        public long[]? MessageIds { get; set; }
+
+        /// <summary>Credit consumed by the send set (cost).</summary>
+        [JsonPropertyName("cost")]
+        public decimal? Cost { get; set; }
+    }
+
+    /// <summary>Verify/OTP request body (POST <c>/v1/send/verify</c>).</summary>
+    internal sealed class SmsIrVerifyRequest
+    {
+        /// <summary>Recipient mobile number (mobile).</summary>
+        [JsonPropertyName("mobile")]
+        public string? Mobile { get; set; }
+
+        /// <summary>Template identifier registered in the panel (templateId).</summary>
+        [JsonPropertyName("templateId")]
+        public long TemplateId { get; set; }
+
+        /// <summary>Template parameter replacements (parameters).</summary>
+        [JsonPropertyName("parameters")]
+        public SmsIrVerifyParameter[]? Parameters { get; set; }
+    }
+
+    /// <summary>A single template parameter (name, value).</summary>
+    internal sealed class SmsIrVerifyParameter
+    {
+        /// <summary>The key defined in the template without surrounding <c>#</c> (name).</summary>
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        /// <summary>The replacement value (value).</summary>
+        [JsonPropertyName("value")]
+        public string? Value { get; set; }
+    }
+
+    /// <summary>Verify/OTP return data (messageId, cost).</summary>
+    internal sealed class SmsIrVerifyResult
+    {
+        /// <summary>Unique message id (messageId).</summary>
+        [JsonPropertyName("messageId")]
+        public long? MessageId { get; set; }
+
+        /// <summary>Credit consumed by the send (cost).</summary>
+        [JsonPropertyName("cost")]
+        public decimal? Cost { get; set; }
     }
 
     /// <summary>
-    /// A single SMS.ir data object (send result or delivery status).
-    /// Wraps the raw JSON element.
+    /// Delivery-status return data (GET <c>/v1/send/{messageId}</c>).
+    /// Times are Unix seconds.
     /// </summary>
-    internal sealed class SmsIrData
+    internal sealed class SmsIrSendStatusResult
     {
-        private readonly JsonElement _element;
+        /// <summary>Unique message id (messageId).</summary>
+        [JsonPropertyName("messageId")]
+        public long? MessageId { get; set; }
 
-        /// <summary>Initializes a new instance wrapping a JSON element.</summary>
-        public SmsIrData(JsonElement element)
-        {
-            _element = element;
-        }
+        /// <summary>Recipient mobile number as a Long (mobile).</summary>
+        [JsonPropertyName("mobile")]
+        public long? Mobile { get; set; }
 
-        /// <summary>Gets a string property value, or null when absent/null.</summary>
-        public string? GetNullableString(string name)
-        {
-            if (!_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
-                return null;
-            if (prop.ValueKind == JsonValueKind.String)
-                return prop.GetString();
-            return prop.ToString();
-        }
+        /// <summary>The message text (messageText).</summary>
+        [JsonPropertyName("messageText")]
+        public string? MessageText { get; set; }
 
-        /// <summary>Gets a decimal property, or null when absent/invalid.</summary>
-        public decimal? GetNullableDecimal(string name)
-        {
-            if (!_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
-                return null;
-            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetDecimal(out var d))
-                return d;
-            if (prop.ValueKind == JsonValueKind.String &&
-                decimal.TryParse(prop.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
-            {
-                return parsed;
-            }
+        /// <summary>Send time in Unix seconds (sendDateTime).</summary>
+        [JsonPropertyName("sendDateTime")]
+        public long? SendDateTime { get; set; }
 
-            return null;
-        }
+        /// <summary>The sender line (lineNumber).</summary>
+        [JsonPropertyName("lineNumber")]
+        public long? LineNumber { get; set; }
 
-        /// <summary>Gets a Unix-seconds DateTimeOffset, or null when absent/invalid.</summary>
-        public DateTimeOffset? GetNullableDateTimeOffset(string name, bool isUnix)
-        {
-            if (!_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
-                return null;
+        /// <summary>Credit charged (cost).</summary>
+        [JsonPropertyName("cost")]
+        public decimal? Cost { get; set; }
 
-            if (isUnix)
-            {
-                if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt64(out var seconds))
-                    return DateTimeOffset.FromUnixTimeSeconds(seconds);
+        /// <summary>Delivery state code as a nullable byte (deliveryState).</summary>
+        [JsonPropertyName("deliveryState")]
+        public byte? DeliveryState { get; set; }
 
-                if (prop.ValueKind == JsonValueKind.String &&
-                    long.TryParse(prop.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-                {
-                    return DateTimeOffset.FromUnixTimeSeconds(parsed);
-                }
-            }
-            else if (prop.ValueKind == JsonValueKind.String &&
-                     DateTimeOffset.TryParse(prop.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-            {
-                return dt;
-            }
-
-            return null;
-        }
+        /// <summary>Delivery time in Unix seconds (deliveryDateTime).</summary>
+        [JsonPropertyName("deliveryDateTime")]
+        public long? DeliveryDateTime { get; set; }
     }
 
-    /// <summary>Serialization helpers for SMS.ir JSON payloads.</summary>
+    /// <summary>JSON serialization helpers for SMS.ir payloads (camelCase).</summary>
     internal static class SmsIrJson
     {
         private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
@@ -94,49 +144,24 @@ namespace IranianSms.Providers.SmsIr.Json
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
 
-        /// <summary>Serializes a payload object to JSON (camelCase keys).</summary>
-        public static string Serialize(object payload)
+        /// <summary>Serializes a request payload to JSON (camelCase keys).</summary>
+        public static string Serialize<T>(T payload)
             => JsonSerializer.Serialize(payload, Options);
 
-        /// <summary>Deserializes the SMS.ir envelope from a JSON body.</summary>
-        public static SmsIrEnvelope? Deserialize(string json)
+        /// <summary>Deserializes an SMS.ir response envelope with a typed data payload.</summary>
+        public static SmsIrResponse<T>? Deserialize<T>(string json)
+            where T : class
         {
             if (string.IsNullOrWhiteSpace(json))
                 return null;
 
-            using (var document = JsonDocument.Parse(json))
+            try
             {
-                var root = document.RootElement;
-                var envelope = new SmsIrEnvelope();
-
-                if (root.TryGetProperty("status", out var statusProp))
-                {
-                    if (statusProp.ValueKind == JsonValueKind.Number && statusProp.TryGetInt32(out var status))
-                        envelope.Status = status;
-                    else if (statusProp.ValueKind == JsonValueKind.String &&
-                             int.TryParse(statusProp.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-                        envelope.Status = parsed;
-                }
-
-                if (root.TryGetProperty("message", out var messageProp) &&
-                    messageProp.ValueKind == JsonValueKind.String)
-                {
-                    envelope.Message = messageProp.GetString();
-                }
-
-                if (root.TryGetProperty("data", out var dataProp) &&
-                    dataProp.ValueKind == JsonValueKind.Object)
-                {
-                    envelope.Data = new SmsIrData(dataProp.Clone());
-                }
-                else if (root.TryGetProperty("data", out dataProp) &&
-                         dataProp.ValueKind == JsonValueKind.Array &&
-                         dataProp.GetArrayLength() > 0)
-                {
-                    envelope.Data = new SmsIrData(dataProp[0].Clone());
-                }
-
-                return envelope;
+                return JsonSerializer.Deserialize<SmsIrResponse<T>>(json, Options);
+            }
+            catch (JsonException)
+            {
+                return null;
             }
         }
     }

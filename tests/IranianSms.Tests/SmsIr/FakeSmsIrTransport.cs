@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using IranianSms.Providers.SmsIr;
+﻿using IranianSms.Providers.SmsIr;
 
 namespace IranianSms.Tests.SmsIr
 {
@@ -20,12 +16,24 @@ namespace IranianSms.Tests.SmsIr
 
         public Task<string> PostJsonAsync(
             string path,
-            string? jsonBody,
+            string jsonBody,
             CancellationToken cancellationToken)
         {
             CallCount++;
             LastPath = path;
             LastJson = jsonBody;
+
+            if (ExceptionToThrow != null)
+                throw ExceptionToThrow;
+
+            return Task.FromResult(ResponseBody ?? "{\"status\":1,\"message\":\"موفق\",\"data\":{}}");
+        }
+
+        public Task<string> GetAsync(string path, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            LastPath = path;
+            LastJson = null;
 
             if (ExceptionToThrow != null)
                 throw ExceptionToThrow;
