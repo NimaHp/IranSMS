@@ -138,4 +138,3 @@ dotnet_diagnostic.CA1510.severity = none
 
 [*Tests*.cs]
 dotnet_diagnostic.CA1707.severity = none
-dotnet_diagnostic.IDE0005.severity = none
