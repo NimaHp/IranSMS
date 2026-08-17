@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/IranSms.Core/IranSms.Core.csproj" />
+    <Project Path="src/IranSms.DependencyInjection/IranSms.DependencyInjection.csproj" />
+    <Project Path="src/IranSms.Providers.Kavenegar/IranSms.Providers.Kavenegar.csproj" />
+    <Project Path="src/IranSms.Providers.SmsIr/IranSms.Providers.SmsIr.csproj" />
+    <Project Path="src/IranSms.Providers.Melipayamak/IranSms.Providers.Melipayamak.csproj" />
+    <Project Path="src/IranSms.Providers.Ghasedak/IranSms.Providers.Ghasedak.csproj" />
+    <Project Path="src/IranSms.Providers.Mock/IranSms.Providers.Mock.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IranSms.Tests/IranSms.Tests.csproj" />
+    <Project Path="tests/IranSms.NetStandard2.0Consumer/IranSms.NetStandard2.0Consumer.csproj" />
+  </Folder>
+</Solution>

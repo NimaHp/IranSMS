@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>IranSms.Providers.SmsIr</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>IranSms.Providers.SmsIr</PackageId>
+    <Description>SMS.ir provider for IranSms — send, bulk, OTP (verify) and delivery status via REST API.</Description>
+    <PackageTags>SMS;SmsIr;IranSms;OTP;provider</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IranSms.Core\IranSms.Core.csproj" />
+    <PackageReference Include="System.Text.Json" />
+    <InternalsVisibleTo Include="IranSms.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>IranSms.Providers.Kavenegar</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Kavenegar SMS provider implementation for IranSms.</Description>
+    <PackageTags>sms;iran;kavenegar</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IranSms.Core\IranSms.Core.csproj" />
+    <PackageReference Include="System.Text.Json" />
+    <InternalsVisibleTo Include="IranSms.Tests" />
+  </ItemGroup>
+
+</Project>

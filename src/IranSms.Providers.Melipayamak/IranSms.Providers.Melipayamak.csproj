@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>IranSms.Providers.Melipayamak</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>IranSms.Providers.Melipayamak</PackageId>
+    <Description>Melipayamak provider for IranSms — send, bulk, OTP and delivery status via REST API.</Description>
+    <PackageTags>SMS;Melipayamak;IranSms;OTP;provider</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IranSms.Core\IranSms.Core.csproj" />
+    <InternalsVisibleTo Include="IranSms.Tests" />
+  </ItemGroup>
+
+</Project>

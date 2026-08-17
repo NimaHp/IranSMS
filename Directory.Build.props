@@ -26,12 +26,12 @@
        stay in each csproj. VersionPrefix here is the local-build default; CI
        overrides the version from the git tag (see release.yml). -->
   <PropertyGroup>
-    <Authors>IranianSms Contributors</Authors>
+    <Authors>IranSms Contributors</Authors>
     <VersionPrefix>0.1.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/NimaHp/IranianSms</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/NimaHp/IranSMS</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/NimaHp/IranianSms</RepositoryUrl>
+    <RepositoryUrl>https://github.com/NimaHp/IranSMS</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

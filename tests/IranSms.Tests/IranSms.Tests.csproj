@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Tests exercise old-style code paths; do not fail the build on code-style rules. -->
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.msbuild" />
+    <PackageReference Include="GitHubActionsTestLogger" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IranSms.Core\IranSms.Core.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.DependencyInjection\IranSms.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.Providers.Kavenegar\IranSms.Providers.Kavenegar.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.Providers.SmsIr\IranSms.Providers.SmsIr.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.Providers.Melipayamak\IranSms.Providers.Melipayamak.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.Providers.Ghasedak\IranSms.Providers.Ghasedak.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.Providers.Mock\IranSms.Providers.Mock.csproj" />
+  </ItemGroup>
+
+</Project>
