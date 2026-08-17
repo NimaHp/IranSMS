@@ -13,6 +13,12 @@ namespace IranianSms.Providers.Ghasedak
         private const int MaxBulkRecipients = 100;
         private const int MaxMessageLength = 1000;
 
+        // Official Ghasedak WebService method names (relative to the gateway base URL).
+        private const string SendSinglePath = "SendSingleSMS";
+        private const string SendBulkPath = "SendBulkSMS";
+        private const string SendOtpPath = "SendOtpSMS";
+        private const string CheckSmsStatusPath = "CheckSmsStatus";
+
         private readonly IGhasedakTransport _transport;
         private readonly string _apiKey;
 
@@ -69,7 +75,7 @@ namespace IranianSms.Providers.Ghasedak
                 body["lineNumber"] = senderLine;
 
             var json = JsonSerializer.Serialize(body);
-            var raw = await _transport.PostJsonAsync("SendSingleSMS", json, cancellationToken).ConfigureAwait(false);
+            var raw = await _transport.PostJsonAsync(SendSinglePath, json, cancellationToken).ConfigureAwait(false);
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
@@ -99,13 +105,13 @@ namespace IranianSms.Providers.Ghasedak
             var body = new Dictionary<string, object>
             {
                 ["message"] = message,
-                ["receptors"] = string.Join(",", list),
+                ["receptors"] = list,
             };
             if (senderLine != null)
                 body["lineNumber"] = senderLine;
 
             var json = JsonSerializer.Serialize(body);
-            var raw = await _transport.PostJsonAsync("SendBulkSMS", json, cancellationToken).ConfigureAwait(false);
+            var raw = await _transport.PostJsonAsync(SendBulkPath, json, cancellationToken).ConfigureAwait(false);
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
@@ -128,21 +134,18 @@ namespace IranianSms.Providers.Ghasedak
 
             var body = new Dictionary<string, object>
             {
-                ["mobile"] = recipient,
                 ["templateName"] = request.TemplateId!,
+                ["receptors"] = new[]
+                {
+                    new { mobile = recipient },
+                },
+                ["inputs"] = request.Parameters == null
+                    ? Array.Empty<object>()
+                    : request.Parameters.Select(kv => (object)new { param = kv.Key, value = kv.Value }).ToArray(),
             };
 
-            if (request.Parameters != null)
-            {
-                foreach (var kv in request.Parameters)
-                    body[kv.Key] = kv.Value;
-            }
-
-            if (request.SenderLine != null)
-                body["lineNumber"] = request.SenderLine;
-
             var json = JsonSerializer.Serialize(body);
-            var raw = await _transport.PostJsonAsync("SendOtpSMS", json, cancellationToken).ConfigureAwait(false);
+            var raw = await _transport.PostJsonAsync(SendOtpPath, json, cancellationToken).ConfigureAwait(false);
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
@@ -157,14 +160,14 @@ namespace IranianSms.Providers.Ghasedak
             if (message.Value is null)
                 throw new ArgumentNullException(nameof(message));
 
-            var type = message.Type == MessageIdentifierType.ProviderMessageId ? "1" : "2";
+            var type = message.Type == MessageIdentifierType.ProviderMessageId ? "MessageId" : "ClientReferenceId";
             var query = new Dictionary<string, string>
             {
                 ["Ids"] = message.Value,
                 ["Type"] = type,
             };
 
-            var raw = await _transport.GetAsync("CheckSmsStatus", query, cancellationToken).ConfigureAwait(false);
+            var raw = await _transport.GetAsync(CheckSmsStatusPath, query, cancellationToken).ConfigureAwait(false);
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
             if (envelope == null)
             {

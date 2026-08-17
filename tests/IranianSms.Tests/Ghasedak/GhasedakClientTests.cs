@@ -88,7 +88,7 @@ namespace IranianSms.Tests.Ghasedak
 
             result.MessageId.Should().Be("gh-b");
             transport.LastEndpoint.Should().Be("SendBulkSMS");
-            transport.LastJsonBody.Should().Contain("\"receptors\":\"09120000000,09120000001\"");
+            transport.LastJsonBody.Should().Contain("\"receptors\":[\"09120000000\",\"09120000001\"]");
         }
 
         [Fact]
@@ -136,8 +136,8 @@ namespace IranianSms.Tests.Ghasedak
             result.MessageId.Should().Be("gh-o");
             transport.LastEndpoint.Should().Be("SendOtpSMS");
             transport.LastJsonBody.Should().Contain("\"templateName\":\"verify\"");
-            transport.LastJsonBody.Should().Contain("\"mobile\":\"09120000000\"");
-            transport.LastJsonBody.Should().Contain("\"Code\":\"12345\"");
+            transport.LastJsonBody.Should().Contain("\"receptors\":[{\"mobile\":\"09120000000\"}]");
+            transport.LastJsonBody.Should().Contain("\"inputs\":[{\"param\":\"Code\",\"value\":\"12345\"}]");
         }
 
         [Fact]
@@ -170,7 +170,7 @@ namespace IranianSms.Tests.Ghasedak
             result.MessageText.Should().Be("hi");
             transport.LastEndpoint.Should().Be("CheckSmsStatus");
             transport.LastQuery!["Ids"].Should().Be("1");
-            transport.LastQuery["Type"].Should().Be("1");
+            transport.LastQuery["Type"].Should().Be("MessageId");
         }
 
         [Theory]
@@ -211,7 +211,8 @@ namespace IranianSms.Tests.Ghasedak
                 new MessageIdentifier("ref-1", MessageIdentifierType.ClientReferenceId),
                 TestContext.Current.CancellationToken);
 
-            transport.LastQuery!["Type"].Should().Be("2");
+            transport.LastQuery!["Type"].Should().Be("ClientReferenceId");
+            transport.LastQuery["Ids"].Should().Be("ref-1");
         }
 
         [Fact]
