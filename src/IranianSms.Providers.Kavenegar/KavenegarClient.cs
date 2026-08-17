@@ -8,6 +8,13 @@ namespace IranianSms.Providers.Kavenegar
     public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
     {
         private const int MaxRecipients = 200;
+
+        // Official Kavenegar REST method paths (relative to the /v1/{api-key} base URL).
+        private const string SendPath = "sms/send";
+        private const string VerifyPath = "verify/lookup";
+        private const string StatusPath = "sms/status";
+        private const string StatusLocalMessageIdPath = "sms/statuslocalmessageid";
+
         private readonly IKavenegarTransport _transport;
 
         /// <summary>
@@ -55,7 +62,7 @@ namespace IranianSms.Providers.Kavenegar
             };
             AddOptional(parameters, "sender", senderLine);
 
-            var entry = await SendCoreAsync("sms/send", parameters, cancellationToken).ConfigureAwait(false);
+            var entry = await SendCoreAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
             return new SmsSendResult(entry.GetString("messageid"))
             {
                 Cost = entry.GetNullableDecimal("cost"),
@@ -85,7 +92,7 @@ namespace IranianSms.Providers.Kavenegar
             };
             AddOptional(parameters, "sender", senderLine);
 
-            var entries = await SendCoreMultiAsync("sms/send", parameters, cancellationToken).ConfigureAwait(false);
+            var entries = await SendCoreMultiAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
 
             var ids = entries.Select(e => e.GetString("messageid")).ToArray();
             return new SmsSendResult(ids[0])
@@ -140,7 +147,7 @@ namespace IranianSms.Providers.Kavenegar
             if (request.SenderLine is not null)
                 AddOptional(parameters, "sender", request.SenderLine);
 
-            var entry = await SendCoreAsync("verify/lookup", parameters, cancellationToken).ConfigureAwait(false);
+            var entry = await SendCoreAsync(VerifyPath, parameters, cancellationToken).ConfigureAwait(false);
             return new OtpSendResult(entry.GetString("messageid"))
             {
                 Cost = entry.GetNullableDecimal("cost"),
@@ -148,12 +155,17 @@ namespace IranianSms.Providers.Kavenegar
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Provider message ids can be queried for the last 48 hours via
+        /// <c>sms/status</c>; client reference ids are resolved through
+        /// <c>sms/statuslocalmessageid</c> and only cover the last 12 hours.
+        /// </remarks>
         public async Task<MessageStatusResult> GetMessageStatusAsync(
             MessageIdentifier message,
             CancellationToken cancellationToken = default)
         {
             var isLocal = message.Type == MessageIdentifierType.ClientReferenceId;
-            var method = isLocal ? "sms/statuslocalmessageid" : "sms/status";
+            var method = isLocal ? StatusLocalMessageIdPath : StatusPath;
             var paramName = isLocal ? "localid" : "messageid";
 
             var parameters = new Dictionary<string, string> { [paramName] = message.Value };
