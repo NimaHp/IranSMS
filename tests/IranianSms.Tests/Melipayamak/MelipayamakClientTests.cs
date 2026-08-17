@@ -89,7 +89,7 @@ namespace IranianSms.Tests.Melipayamak
             var result = await client.SendBulkAsync(TwoRecipients, "bulk", "5000", TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("123");
-            transport.LastAction.Should().Be("SendBulkSMS");
+            transport.LastAction.Should().Be("SendSMS");
             transport.LastForm!["to"].Should().Be("09120000000,09120000001");
         }
 
@@ -151,17 +151,23 @@ namespace IranianSms.Tests.Melipayamak
 
             result.State.Should().Be(MessageDeliveryState.Delivered);
             result.RawStatus.Should().Be("1");
-            transport.LastAction.Should().Be("GetDelivery");
+            transport.LastAction.Should().Be("GetDeliveries2");
             transport.LastForm!["recId"].Should().Be("98765");
         }
 
         [Theory]
         [InlineData("-1", MessageDeliveryState.Failed)]
-        [InlineData("0", MessageDeliveryState.Delivered)]
+        [InlineData("0", MessageDeliveryState.SentToOperator)]
         [InlineData("1", MessageDeliveryState.Delivered)]
-        [InlineData("2", MessageDeliveryState.SentToOperator)]
-        [InlineData("5", MessageDeliveryState.Queued)]
-        [InlineData("16", MessageDeliveryState.Failed)]
+        [InlineData("2", MessageDeliveryState.Undelivered)]
+        [InlineData("3", MessageDeliveryState.Failed)]
+        [InlineData("5", MessageDeliveryState.Failed)]
+        [InlineData("8", MessageDeliveryState.SentToOperator)]
+        [InlineData("16", MessageDeliveryState.Undelivered)]
+        [InlineData("35", MessageDeliveryState.Blocked)]
+        [InlineData("300", MessageDeliveryState.Failed)]
+        [InlineData("400", MessageDeliveryState.Queued)]
+        [InlineData("500", MessageDeliveryState.Failed)]
         [InlineData("99", MessageDeliveryState.Unknown)]
         public async Task GetMessageStatusAsync_MapsCodes(string raw, MessageDeliveryState expected)
         {

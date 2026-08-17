@@ -6,6 +6,11 @@ namespace IranianSms.Providers.Melipayamak
     /// </summary>
     public sealed class MelipayamakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
     {
+        // Official Melipayamak REST action names (relative to the /api/SendSMS base URL).
+        private const string SendPath = "SendSMS";
+        private const string SendOtpPath = "SendOtp";
+        private const string GetDeliveriesPath = "GetDeliveries2";
+
         private readonly IMelipayamakTransport _transport;
         private readonly string _username;
         private readonly string _password;
@@ -68,7 +73,7 @@ namespace IranianSms.Providers.Melipayamak
                 ["text"] = message,
             };
 
-            var body = await _transport.PostFormAsync("SendSMS", form, cancellationToken).ConfigureAwait(false);
+            var body = await _transport.PostFormAsync(SendPath, form, cancellationToken).ConfigureAwait(false);
             return new SmsSendResult(MelipayamakResponse.ParseRecId(body));
         }
 
@@ -97,7 +102,7 @@ namespace IranianSms.Providers.Melipayamak
                 ["text"] = message,
             };
 
-            var response = await _transport.PostFormAsync("SendBulkSMS", form, cancellationToken).ConfigureAwait(false);
+            var response = await _transport.PostFormAsync(SendPath, form, cancellationToken).ConfigureAwait(false);
             return new SmsSendResult(MelipayamakResponse.ParseRecId(response));
         }
 
@@ -125,7 +130,7 @@ namespace IranianSms.Providers.Melipayamak
                 ["code"] = request.Code!,
             };
 
-            var response = await _transport.PostFormAsync("SendOtp", form, cancellationToken).ConfigureAwait(false);
+            var response = await _transport.PostFormAsync(SendOtpPath, form, cancellationToken).ConfigureAwait(false);
             return new OtpSendResult(MelipayamakResponse.ParseRecId(response));
         }
 
@@ -147,7 +152,7 @@ namespace IranianSms.Providers.Melipayamak
                 ["recId"] = recId.ToString(System.Globalization.CultureInfo.InvariantCulture),
             };
 
-            var body = await _transport.PostFormAsync("GetDelivery", form, cancellationToken).ConfigureAwait(false);
+            var body = await _transport.PostFormAsync(GetDeliveriesPath, form, cancellationToken).ConfigureAwait(false);
             return new MessageStatusResult(MelipayamakResponse.MapDeliveryState(body), message)
             {
                 RawStatus = body.Trim(),

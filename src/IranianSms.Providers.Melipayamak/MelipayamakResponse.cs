@@ -92,9 +92,8 @@ namespace IranianSms.Providers.Melipayamak
         }
 
         /// <summary>
-        /// Maps a Melipayamak delivery status string/number to a
-        /// <see cref="MessageDeliveryState"/>. Values: null/-1 = not-sent-available,
-        /// 1 = delivered to receiver, 2/7 ?= sent to operator, 3 = failed etc.
+        /// Maps a Melipayamak delivery status number to a <see cref="MessageDeliveryState"/>
+        /// (see the official "GetDeliveries/GetDelivery" return-value table).
         /// </summary>
         /// <param name="status">The raw delivery status.</param>
         /// <returns>The normalized delivery state.</returns>
@@ -108,22 +107,26 @@ namespace IranianSms.Providers.Melipayamak
 
             switch (code)
             {
-                case -1:
+                case -1:            // not sent
+                case 3:             // telecom error
+                case 5:             // unknown error
+                case 300:           // filtered
+                case 500:           // not accepted
                     return MessageDeliveryState.Failed;
-                case 0:
-                case 1:
-                    return MessageDeliveryState.Delivered;
-                case 2:
-                case 4:
+                case 0:             // sent to telecom
+                case 8:             // reached telecom
+                case 200:           // sent
                     return MessageDeliveryState.SentToOperator;
-                case 5:
-                case 8:
+                case 1:             // reached the phone
+                    return MessageDeliveryState.Delivered;
+                case 2:             // not reached the phone
+                case 16:            // not reached telecom
+                    return MessageDeliveryState.Undelivered;
+                case 35:            // blacklist
+                    return MessageDeliveryState.Blocked;
+                case 400:           // in the send queue
                     return MessageDeliveryState.Queued;
-                case 16:
-                case 17:
-                case 18:
-                    return MessageDeliveryState.Failed;
-                default:
+                default:            // null, -2/-3/-10, -108/-109/-110, 100
                     return MessageDeliveryState.Unknown;
             }
         }
