@@ -4,15 +4,18 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>IranSms.Providers.Mock</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>In-memory Mock provider for IranSms — no network, deterministic ids, useful for tests and local development.</Description>
-    <PackageTags>sms;ir;mock;iran;provider</PackageTags>
+    <Description>In-memory Mock provider for IranSms — no network, deterministic ids, useful for tests and local development, with AddMock DI registration.</Description>
+    <PackageTags>sms;ir;mock;iran;provider;dependency-injection</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IranSms.Core\IranSms.Core.csproj" />
+    <ProjectReference Include="..\IranSms.DependencyInjection\IranSms.DependencyInjection.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
     <InternalsVisibleTo Include="IranSms.Tests" />
   </ItemGroup>
 
