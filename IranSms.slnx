@@ -17,4 +17,9 @@
     <Project Path="tests/IranSms.Tests/IranSms.Tests.csproj" />
     <Project Path="tests/IranSms.NetStandard2.0Consumer/IranSms.NetStandard2.0Consumer.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Basic/Basic.csproj" />
+    <Project Path="samples/AspNetCore/AspNetCore.csproj" />
+    <Project Path="samples/MultiProvider/MultiProvider.csproj" />
+  </Folder>
 </Solution>

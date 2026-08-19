@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>IranSms.Samples.AspNetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IranSms.Core\IranSms.Core.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.DependencyInjection\IranSms.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\IranSms.Providers.Mock\IranSms.Providers.Mock.csproj" />
+  </ItemGroup>
+
+</Project>

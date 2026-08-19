@@ -1,0 +1,16 @@
+<Project>
+
+  <!-- Re-import the repository root build props (ImplicitUsings, Nullable,
+       TreatWarningsAsErrors, SourceLink, package metadata). -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..\'))" />
+
+  <!-- Samples are demonstration code: they intentionally use top-level
+       statements and inline data, so the strict library analysis rules
+       (IDE0005/CA1050/CA1861...) do not apply here. Compiler warnings
+       (nullable, CS*) remain errors as in the rest of the repository. -->
+  <PropertyGroup>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <AnalysisLevel>none</AnalysisLevel>
+  </PropertyGroup>
+
+</Project>
