@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore IranSMS.slnx
+
+      - name: Build
+        run: dotnet build IranSMS.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test IranSMS.slnx -c Release --no-build --logger "GitHubActions"
+
+      - name: Smoke test (.NET Standard 2.0 consumer)
+        run: dotnet run --project tests/IranSMS.NetStandard2.0Consumer -c Release --no-build

@@ -1,0 +1,85 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub Release
+  pull-requests: read
+  id-token: write # NuGet Trusted Publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: nuget-publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Single source of truth for the package version: the git tag (v0.1.0-beta.1 -> 0.1.0-beta.1).
+      # Local builds fall back to VersionPrefix + VersionSuffix in Directory.Build.props.
+      - name: Resolve package version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="0.1.0-beta.1"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Restore
+        run: dotnet restore IranSMS.slnx
+
+      - name: Build
+        run: dotnet build IranSMS.slnx -c Release --no-restore -p:Version="$VERSION"
+
+      # Release gate: the full suite must stay green on the exact tag being published.
+      - name: Test
+        run: dotnet test IranSMS.slnx -c Release --no-build --logger "GitHubActions"
+
+      - name: Pack
+        run: |
+          for p in Core DependencyInjection Providers.Kavenegar Providers.Ghasedak Providers.SmsIr Providers.Melipayamak Providers.Mock; do
+            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release --no-build -o artifacts -p:Version="$VERSION"
+          done
+
+      # Trusted Publishing (OIDC): NuGet/login exchanges the GitHub Actions OIDC
+      # token for a short-lived NuGet API key, so no long-lived NUGET_API_KEY is needed.
+      - name: NuGet login (OIDC -> temp API key)
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to NuGet.org
+        run: dotnet nuget push 'artifacts/*.nupkg' --source https://api.nuget.org/v3/index.json --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --skip-duplicate
+
+      - name: Create GitHub Release
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Keep the version text in the READMEs in sync with the released tag
+      # ("— نسخهٔ 0.1.0-beta.1" / "— Version 0.1.0-beta.1" on line 3).
+      - name: Bump README version text
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "3s/[0-9][0-9.\-a-z]*/$VERSION/" README.md
+          sed -i "3s/[0-9][0-9.\-a-z]*/$VERSION/" README.en.md
+          git config user.name "NimaHp"
+          git config user.email "12736825+NimaHp@users.noreply.github.com"
+          git add README.md README.en.md
+          if git diff --cached --quiet; then
+            echo "README already current ($VERSION); nothing to commit."
+          else
+            git commit -m "docs: bump README version text to $VERSION"
+            git push origin HEAD:main || echo "::warning::README bump not pushed (main moved since tag?)"
+          fi
