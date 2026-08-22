@@ -5,6 +5,7 @@
     <RootNamespace>IranSms.Providers.SmsIr</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>IranSms.Providers.SmsIr</PackageId>
+    <IsPackable>true</IsPackable>
     <Description>SMS.ir provider for IranSms — send, bulk, OTP (verify) and delivery status via REST API.</Description>
     <PackageTags>SMS;SmsIr;IranSms;OTP;provider</PackageTags>
   </PropertyGroup>

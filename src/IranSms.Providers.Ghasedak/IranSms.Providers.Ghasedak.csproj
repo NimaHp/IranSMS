@@ -4,6 +4,8 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>IranSms.Providers.Ghasedak</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>IranSms.Providers.Ghasedak</PackageId>
+    <IsPackable>true</IsPackable>
     <Description>Ghasedak SMS provider for IranSms — send, bulk, OTP and delivery status via REST API.</Description>
     <PackageTags>SMS;Ghasedak;IranSms;OTP;provider</PackageTags>
   </PropertyGroup>
