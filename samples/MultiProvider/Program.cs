@@ -13,16 +13,22 @@ using Microsoft.Extensions.DependencyInjection;
 // Each client is built by the consumer (consumer-owned) and registered with the
 // generic, provider-agnostic AddIranSms(...).
 
-const string apiKey = "YOUR_API_KEY_HERE";
+string? kavenegarKey = Environment.GetEnvironmentVariable("KAVENEGAR_API_KEY");
+string? ghasedakKey = Environment.GetEnvironmentVariable("GHASEDAK_API_KEY");
+string? smsIrKey = Environment.GetEnvironmentVariable("SMSIR_API_KEY");
+string? melipayamakUser = Environment.GetEnvironmentVariable("MELIPAYAMAK_USERNAME");
+string? melipayamakPass = Environment.GetEnvironmentVariable("MELIPAYAMAK_PASSWORD");
 
 var services = new ServiceCollection();
 services.AddIranSms(new MockSmsClient("Mock"));
-services.AddIranSms(new KavenegarClient(apiKey));
-services.AddIranSms(new SmsIrClient(apiKey));
-services.AddIranSms(new MelipayamakClient(
-    Environment.GetEnvironmentVariable("MELIPAYAMAK_USERNAME") ?? "YOUR_USERNAME",
-    Environment.GetEnvironmentVariable("MELIPAYAMAK_PASSWORD") ?? "YOUR_PASSWORD"));
-services.AddIranSms(new GhasedakClient(apiKey));
+if (!string.IsNullOrWhiteSpace(kavenegarKey))
+    services.AddIranSms(new KavenegarClient(kavenegarKey));
+if (!string.IsNullOrWhiteSpace(smsIrKey))
+    services.AddIranSms(new SmsIrClient(smsIrKey));
+if (!string.IsNullOrWhiteSpace(melipayamakUser) && !string.IsNullOrWhiteSpace(melipayamakPass))
+    services.AddIranSms(new MelipayamakClient(melipayamakUser, melipayamakPass));
+if (!string.IsNullOrWhiteSpace(ghasedakKey))
+    services.AddIranSms(new GhasedakClient(ghasedakKey));
 
 var provider = services.BuildServiceProvider();
 

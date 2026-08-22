@@ -1,5 +1,6 @@
 using IranSms;
 using IranSms.DependencyInjection;
+using IranSms.Providers.Kavenegar;
 using IranSms.Providers.Mock;
 
 // ASP.NET Core sample: build a provider client yourself (consumer-owned), register it
@@ -9,7 +10,13 @@ using IranSms.Providers.Mock;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddIranSms(new MockSmsClient("SmsApi"));
+var kavenegarKey = builder.Configuration["Kavenegar:ApiKey"]
+    ?? Environment.GetEnvironmentVariable("KAVENEGAR_API_KEY");
+
+if (!string.IsNullOrWhiteSpace(kavenegarKey))
+    builder.Services.AddIranSms(new KavenegarClient(kavenegarKey));
+else
+    builder.Services.AddIranSms(new MockSmsClient("Mock"));
 
 var app = builder.Build();
 
