@@ -1,4 +1,5 @@
 using IranSms;
+using IranSms.DependencyInjection;
 using IranSms.Providers.Ghasedak;
 using IranSms.Providers.Kavenegar;
 using IranSms.Providers.Melipayamak;
@@ -6,22 +7,22 @@ using IranSms.Providers.Mock;
 using IranSms.Providers.SmsIr;
 using Microsoft.Extensions.DependencyInjection;
 
-// MultiProvider sample: register several providers in one DI container and
+// MultiProvider sample: register several provider clients in one DI container and
 // dispatch to the first one that supports a capability. Real providers need
 // credentials from environment variables; the Mock provider always works.
+// Each client is built by the consumer (consumer-owned) and registered with the
+// generic, provider-agnostic AddIranSms(...).
 
 const string apiKey = "YOUR_API_KEY_HERE";
 
 var services = new ServiceCollection();
-services.AddMock(options => options.ProviderName = "Mock");
-services.AddKavenegar(options => options.ApiKey = apiKey);
-services.AddSmsIr(options => options.ApiKey = apiKey);
-services.AddMelipayamak(options =>
-{
-    options.Username = Environment.GetEnvironmentVariable("MELIPAYAMAK_USERNAME") ?? "YOUR_USERNAME";
-    options.Password = Environment.GetEnvironmentVariable("MELIPAYAMAK_PASSWORD") ?? "YOUR_PASSWORD";
-});
-services.AddGhasedak(options => options.ApiKey = apiKey);
+services.AddIranSms(new MockSmsClient("Mock"));
+services.AddIranSms(new KavenegarClient(apiKey));
+services.AddIranSms(new SmsIrClient(apiKey));
+services.AddIranSms(new MelipayamakClient(
+    Environment.GetEnvironmentVariable("MELIPAYAMAK_USERNAME") ?? "YOUR_USERNAME",
+    Environment.GetEnvironmentVariable("MELIPAYAMAK_PASSWORD") ?? "YOUR_PASSWORD"));
+services.AddIranSms(new GhasedakClient(apiKey));
 
 var provider = services.BuildServiceProvider();
 

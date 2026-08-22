@@ -1,17 +1,15 @@
 using IranSms;
+using IranSms.DependencyInjection;
 using IranSms.Providers.Mock;
 
-// ASP.NET Core sample: register a provider through Add<Provider>(), resolve it
-// as ISmsClient from the container, and call it from a minimal API. Swapping
-// provider is a one-line change (e.g. AddKavenegar(...) + its credentials).
+// ASP.NET Core sample: build a provider client yourself (consumer-owned), register it
+// with AddIranSms(...) in the container, then resolve it as ISmsClient from a minimal
+// API. Swapping provider is a one-line change (e.g. new KavenegarClient(...) with its
+// API key).
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddMock(options =>
-{
-    options.ProviderName = "SmsApi";
-    options.Timeout = TimeSpan.FromSeconds(10);
-});
+builder.Services.AddIranSms(new MockSmsClient("SmsApi"));
 
 var app = builder.Build();
 

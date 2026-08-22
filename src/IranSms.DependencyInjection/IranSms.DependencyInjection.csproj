@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>IranSms.DependencyInjection</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>Provider-agnostic DI infrastructure for IranSms — generic AddIranSms&lt;T&gt; registration plus shared SmsClientRegistration helpers used by provider packages.</Description>
+    <Description>Provider-agnostic DI infrastructure for IranSms — consumer-owned, capability-aware AddIranSms registration. Providers never depend on this package.</Description>
     <PackageTags>sms;iran;dependency-injection;di;abstraction</PackageTags>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
@@ -15,7 +15,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
 
 </Project>

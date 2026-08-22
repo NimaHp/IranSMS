@@ -79,7 +79,13 @@ namespace IranSms.Providers.Ghasedak
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
-            return new SmsSendResult(msgId ?? Guid.NewGuid().ToString());
+            if (string.IsNullOrWhiteSpace(msgId))
+                throw new IranSmsException("Ghasedak did not return a MessageId for SendSingleSMS.")
+                {
+                    ProviderName = "Ghasedak",
+                    RawResponseBody = raw,
+                };
+            return new SmsSendResult(msgId!);
         }
 
         /// <inheritdoc />
@@ -115,7 +121,13 @@ namespace IranSms.Providers.Ghasedak
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
-            return new SmsSendResult(msgId ?? Guid.NewGuid().ToString());
+            if (string.IsNullOrWhiteSpace(msgId))
+                throw new IranSmsException("Ghasedak did not return a MessageId for SendBulkSMS.")
+                {
+                    ProviderName = "Ghasedak",
+                    RawResponseBody = raw,
+                };
+            return new SmsSendResult(msgId!);
         }
 
         /// <inheritdoc />
@@ -149,7 +161,13 @@ namespace IranSms.Providers.Ghasedak
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
-            return new OtpSendResult(msgId ?? Guid.NewGuid().ToString());
+            if (string.IsNullOrWhiteSpace(msgId))
+                throw new IranSmsException("Ghasedak did not return a MessageId for SendOtpSMS.")
+                {
+                    ProviderName = "Ghasedak",
+                    RawResponseBody = raw,
+                };
+            return new OtpSendResult(msgId!);
         }
 
         /// <inheritdoc />

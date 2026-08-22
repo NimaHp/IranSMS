@@ -1,11 +1,8 @@
 using System;
 using FluentAssertions;
 using IranSms.DependencyInjection;
-using IranSms.Providers.Ghasedak;
 using IranSms.Providers.Kavenegar;
-using IranSms.Providers.Melipayamak;
 using IranSms.Providers.Mock;
-using IranSms.Providers.SmsIr;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -14,23 +11,25 @@ namespace IranSms.Tests.DependencyInjection
     public class ProviderRegistrationTests
     {
         [Fact]
-        public void AddMock_RegistersClient_UnderAllCapabilityInterfaces()
+        public void AddIranSms_RegistersInstance_UnderEveryImplementedCapabilityInterface()
         {
-            var services = new ServiceCollection();
+            var mock = new MockSmsClient("Demo");
+            var provider = new ServiceCollection()
+                .AddIranSms(mock)
+                .BuildServiceProvider();
 
-            var result = services.AddMock(options => options.ProviderName = "Demo");
-            var provider = services.BuildServiceProvider();
-
-            result.Should().BeSameAs(services);
-            provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<MockSmsClient>();
+            provider.GetRequiredService<ISmsClient>().Should().BeSameAs(mock);
             provider.GetRequiredService<MockSmsClient>().ProviderName.Should().Be("Demo");
+            provider.GetRequiredService<ISmsBulkSender>().Should().BeSameAs(mock);
+            provider.GetRequiredService<ISmsOtpSender>().Should().BeSameAs(mock);
+            provider.GetRequiredService<ISmsDeliveryReporter>().Should().BeSameAs(mock);
         }
 
         [Fact]
-        public void AddMock_ResolvesClient_AsEachCapabilityInterface()
+        public void AddIranSms_ResolvesClient_AsEachCapabilityInterface()
         {
             var provider = new ServiceCollection()
-                .AddMock()
+                .AddIranSms(new MockSmsClient())
                 .BuildServiceProvider();
 
             provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<ISmsBulkSender>();
@@ -38,66 +37,47 @@ namespace IranSms.Tests.DependencyInjection
             provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<ISmsDeliveryReporter>();
         }
 
-        [Theory]
-        [InlineData(typeof(KavenegarClient), "Kavenegar", "api-key")]
-        [InlineData(typeof(SmsIrClient), "SmsIr", "api-key")]
-        [InlineData(typeof(GhasedakClient), "Ghasedak", "api-key")]
-        public void AddProvider_ResolvesTypedClient(Type clientType, string provider, string apiKey)
-        {
-            var services = new ServiceCollection();
-            switch (clientType.Name)
-            {
-                case "KavenegarClient":
-                    services.AddKavenegar(o => o.ApiKey = apiKey);
-                    break;
-                case "SmsIrClient":
-                    services.AddSmsIr(o => o.ApiKey = apiKey);
-                    break;
-                case "GhasedakClient":
-                    services.AddGhasedak(o => o.ApiKey = apiKey);
-                    break;
-            }
-
-            var providerContainer = services.BuildServiceProvider();
-            var client = providerContainer.GetRequiredService<ISmsClient>();
-
-            client.Should().BeOfType(clientType);
-            client.ProviderName.Should().Be(provider);
-            client.Should().BeAssignableTo<ISmsBulkSender>();
-            client.Should().BeAssignableTo<ISmsOtpSender>();
-            client.Should().BeAssignableTo<ISmsDeliveryReporter>();
-        }
-
         [Fact]
-        public void AddMelipayamak_RequiresUsernameAndPassword()
+        public void AddIranSms_RootProviderClient_ExposesCapabilities()
         {
+            var kavenegar = new KavenegarClient("api-key");
             var provider = new ServiceCollection()
-                .AddMelipayamak(o =>
-                {
-                    o.Username = "user";
-                    o.Password = "pass";
-                })
+                .AddIranSms(kavenegar)
                 .BuildServiceProvider();
 
-            provider.GetRequiredService<ISmsClient>().Should().BeOfType<MelipayamakClient>();
+            provider.GetRequiredService<ISmsClient>().Should().BeSameAs(kavenegar);
+            provider.GetRequiredService<ISmsBulkSender>().Should().BeSameAs(kavenegar);
+            provider.GetRequiredService<ISmsOtpSender>().Should().BeSameAs(kavenegar);
+            provider.GetRequiredService<ISmsDeliveryReporter>().Should().BeSameAs(kavenegar);
         }
 
         [Fact]
-        public void AddProvider_ThrowsWhenCredentialsMissing()
+        public void AddIranSms_DoesNotRegisterInterfacesTheInstanceDoesNotImplement()
         {
+            var minimal = new FakeSmsClient();
             var provider = new ServiceCollection()
-                .AddKavenegar(_ => { })
+                .AddIranSms(minimal)
                 .BuildServiceProvider();
 
-            Assert.Throws<IranSmsException>(() => provider.GetRequiredService<ISmsClient>());
+            provider.GetRequiredService<ISmsClient>().Should().BeSameAs(minimal);
+
+            // Capability-aware: a non-implemented interface is not registered, so
+            // resolving it fails cleanly (InvalidOperationException), never InvalidCastException
+            // at the point of a blind forward.
+            provider.Invoking(p => p.GetRequiredService<ISmsBulkSender>())
+                .Should().Throw<InvalidOperationException>();
+            provider.Invoking(p => p.GetRequiredService<ISmsOtpSender>())
+                .Should().Throw<InvalidOperationException>();
+            provider.Invoking(p => p.GetRequiredService<ISmsDeliveryReporter>())
+                .Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
-        public void AddIranSms_RegistersCustomImplementation_WithoutProviderPackage()
+        public void AddIranSms_RegistersMinimalClient_WithoutProviderPackage()
         {
             var services = new ServiceCollection();
 
-            var result = services.AddIranSms<FakeSmsClient>(new FakeSmsClient());
+            var result = services.AddIranSms(new FakeSmsClient());
             var provider = services.BuildServiceProvider();
 
             result.Should().BeSameAs(services);
@@ -105,14 +85,24 @@ namespace IranSms.Tests.DependencyInjection
         }
 
         [Fact]
-        public void AddIranSms_RejectsNullInstance()
+        public void AddIranSms_RejectsNullServices()
+        {
+            ServiceCollection? services = null;
+
+            var act = () => services!.AddIranSms(new MockSmsClient());
+
+            act.Should().Throw<ArgumentNullException>().WithParameterName("services");
+        }
+
+        [Fact]
+        public void AddIranSms_RejectsNullClient()
         {
             var services = new ServiceCollection();
-            FakeSmsClient? instance = null;
+            FakeSmsClient? client = null;
 
-            var act = () => services.AddIranSms<FakeSmsClient>(instance!);
+            var act = () => services.AddIranSms(client!);
 
-            act.Should().Throw<ArgumentNullException>().WithParameterName("instance");
+            act.Should().Throw<ArgumentNullException>().WithParameterName("client");
         }
 
         private sealed class FakeSmsClient : ISmsClient
