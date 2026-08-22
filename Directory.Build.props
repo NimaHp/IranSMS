@@ -28,11 +28,17 @@
   <PropertyGroup>
     <Authors>IranSms Contributors</Authors>
     <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>beta.1</VersionSuffix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/NimaHp/IranSMS</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/NimaHp/IranSMS</RepositoryUrl>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)assets\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
