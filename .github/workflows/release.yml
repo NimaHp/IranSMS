@@ -35,10 +35,10 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Restore
-        run: dotnet restore IranSMS.slnx
+        run: dotnet restore IranSms.slnx
 
       - name: Build
-        run: dotnet build IranSMS.slnx -c Release --no-restore -p:Version="$VERSION"
+        run: dotnet build IranSms.slnx -c Release --no-restore -p:Version="$VERSION"
 
       # Release gate: the full suite must stay green on the exact tag being published.
       - name: Test

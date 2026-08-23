@@ -21,16 +21,16 @@ jobs:
             8.0.x
 
       - name: Restore
-        run: dotnet restore IranSMS.slnx
+        run: dotnet restore IranSms.slnx
 
       - name: Build
-        run: dotnet build IranSMS.slnx -c Release --no-restore
+        run: dotnet build IranSms.slnx -c Release --no-restore
 
       - name: Test
         run: dotnet run --project tests/IranSms.Tests -c Release --no-build
 
       - name: Smoke test (.NET Standard 2.0 consumer)
-        run: dotnet run --project tests/IranSMS.NetStandard2.0Consumer -c Release --no-build
+        run: dotnet build tests/IranSms.NetStandard2.0Consumer -c Release --no-restore
 
       - name: Upload coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
