@@ -42,7 +42,7 @@ jobs:
 
       # Release gate: the full suite must stay green on the exact tag being published.
       - name: Test
-        run: dotnet test IranSMS.slnx -c Release --no-build --logger "GitHubActions"
+        run: dotnet run --project tests/IranSms.Tests -c Release --no-build
 
       - name: Pack
         run: |
