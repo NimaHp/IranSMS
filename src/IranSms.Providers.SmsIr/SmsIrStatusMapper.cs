@@ -1,4 +1,4 @@
-namespace IranSms.Providers.SmsIr
+﻿namespace IranSms.Providers.SmsIr
 {
     /// <summary>
     /// Maps SMS.ir delivery-state strings to the normalized

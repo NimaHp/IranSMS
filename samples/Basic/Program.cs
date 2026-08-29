@@ -1,4 +1,4 @@
-using IranSms;
+﻿using IranSms;
 using IranSms.Providers.Mock;
 
 // Basic sample: direct usage, no DI container required.

@@ -1,4 +1,4 @@
-namespace IranSms.Providers.Kavenegar
+﻿namespace IranSms.Providers.Kavenegar
 {
     /// <summary>
     /// Contract for the Kavenegar HTTP transport, so tests can inject

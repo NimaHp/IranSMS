@@ -1,4 +1,4 @@
-namespace IranSms.Providers.Kavenegar
+﻿namespace IranSms.Providers.Kavenegar
 {
     /// <summary>
     /// Real Kavenegar transport backed by <see cref="HttpClient"/>.

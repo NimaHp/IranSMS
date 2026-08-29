@@ -1,4 +1,4 @@
-namespace IranSms.Providers.Melipayamak
+﻿namespace IranSms.Providers.Melipayamak
 {
     /// <summary>
     /// Real Melipayamak transport backed by <see cref="HttpClient"/>.

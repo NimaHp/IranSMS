@@ -1,4 +1,4 @@
-// Compile-time guard: consumes the IranSms.Core public API from an
+﻿// Compile-time guard: consumes the IranSms.Core public API from an
 // old-style netstandard2.0 project (LangVersion 7.3, nullable disabled).
 // If the Core API leaks modern C# features (record/init/required/DateOnly),
 // this project fails to compile.

@@ -1,4 +1,4 @@
-namespace IranSms.Providers.Ghasedak
+﻿namespace IranSms.Providers.Ghasedak
 {
     /// <summary>
     /// Contract for the Ghasedak HTTP transport, so tests can inject

@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using IranSms.Providers.Melipayamak;
+﻿using IranSms.Providers.Melipayamak;
 
 namespace IranSms.Tests.Melipayamak
 {

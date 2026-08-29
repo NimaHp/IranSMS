@@ -1,4 +1,4 @@
-namespace IranSms.Providers.SmsIr
+﻿namespace IranSms.Providers.SmsIr
 {
     /// <summary>
     /// Contract for the SMS.ir HTTP transport, so tests can inject scripted

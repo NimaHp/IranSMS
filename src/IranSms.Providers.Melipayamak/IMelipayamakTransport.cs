@@ -1,4 +1,4 @@
-namespace IranSms.Providers.Melipayamak
+﻿namespace IranSms.Providers.Melipayamak
 {
     /// <summary>
     /// Contract for the Melipayamak HTTP transport, so tests can inject

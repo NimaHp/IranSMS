@@ -1,4 +1,4 @@
-namespace IranSms
+﻿namespace IranSms
 {
     /// <summary>
     /// Thrown by provider clients when the SMS API rejects a request (HTTP

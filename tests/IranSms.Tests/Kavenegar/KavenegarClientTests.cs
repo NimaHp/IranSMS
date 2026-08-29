@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using IranSms.Providers.Kavenegar;
 using Xunit;
 
