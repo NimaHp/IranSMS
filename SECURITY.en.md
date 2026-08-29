@@ -26,6 +26,7 @@ Target initial response time: within 7 business days.
 * **No raw-response leakage:** `IranSmsException.RawResponseBody` may contain message text or recipient numbers — never write it to public logs, HTTP responses, or long-term storage; log only `ProviderName` and `ProviderStatusCode`.
 * **No fabricated identifiers:** When a provider returns no `MessageId`, no synthetic identifier is generated — an `IranSmsException` with `RawResponseBody` is thrown instead.
 * **`HttpClient` ownership:** The lifetime of `HttpClient` and `HttpMessageHandler` is fully consumer-owned; the library creates no global `HttpClient`.
+* **HTTP timeout:** When no `HttpClient` is injected, the default `HttpClient` timeout (100 seconds) applies; inject a dedicated `HttpClient` with a custom `Timeout` for precise control.
 * **Input validation bounds:** Each client enforces operator limits (e.g. bulk recipient cap, message length) before any network call and throws `ArgumentException` on violation.
 * **Stateless & thread-safe:** Clients hold no shared mutable state and are safe for concurrent invocation.
 * **Minimal dependencies:** Core has zero external dependencies and each provider depends only on `Core`.

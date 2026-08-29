@@ -80,6 +80,7 @@ if (client is ISmsOtpSender otp) { ... }
 * ✅ **Consumer-Owned Lifecycle:** You control `HttpClient` creation and API key management.
 * ✅ **Capability-Aware DI:** Registers only the interfaces that the underlying client instance actually implements.
 * ✅ **Highly Testable:** Includes a Mock provider with deterministic `mock-{n}` identifiers.
+* ✅ **HttpClient ownership:** The client lifecycle is fully owned by the consumer. If no `HttpClient` is injected, the default 100-second `HttpClient.Timeout` applies — pass your own pre-configured `HttpClient` to customize timeouts, handlers, and policies.
 * ✅ **netstandard2.0 Compatible:** Works across all modern .NET runtimes (from .NET Framework to .NET 10).
 * ✅ **Strict Error Mapping:** Throws clear exceptions instead of returning dummy values when `MessageId` is missing.
 
@@ -200,12 +201,23 @@ export MELIPAYAMAK_USERNAME=... MELIPAYAMAK_PASSWORD=...
 
 ## Tests & Coverage
 
-```bash
+Windows (PowerShell):
+
+```powershell
 dotnet build -c Release
-./tests/IranSms.Tests/bin/Release/net10.0/IranSms.Tests.exe
+dotnet run --project tests\IranSms.Tests -c Release --no-build --framework net10.0
+dotnet run --project tests\IranSms.Tests -c Release --no-build --framework net8.0
 ```
 
-150 test cases (`xunit v3` + `FluentAssertions`) — all passing.
+Linux / macOS (bash):
+
+```bash
+dotnet build -c Release
+dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10.0
+dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.0
+```
+
+150 test cases (`xunit v3` + `FluentAssertions`) — all passing on both .NET 10 and .NET 8.
 
 ## CI/CD Pipeline
 

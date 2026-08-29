@@ -1,6 +1,6 @@
 ﻿# IranSMS
 
-**یکپارچه‌سازی سامانه‌های پیامکی ایران در `.NET`** — نسخهٔ `0.1.0-beta.1`
+**یکپارچه‌سازی سامانه‌های پیامکی ایران در `.NET`** — نسخه `0.1.0-beta.1`
 
 [![Build](https://github.com/NimaHp/IranSMS/actions/workflows/build.yml/badge.svg)](https://github.com/NimaHp/IranSMS/actions)
 [![License](https://img.shields.io/github/license/NimaHp/IranSMS)](LICENSE)
@@ -14,7 +14,7 @@
 
 ---
 
-## دربارهٔ پروژه
+## درباره پروژه
 
 کتابخانه‌ای سبک، مستقل از وابستگی‌های جانبی و بدون وابسته کردن پروژه به اپراتوری خاص برای ارسال پیامک در `.NET`. این کتابخانه یک قرارداد یکپارچه (<span dir="ltr">ISmsClient</span>)، قابلیت‌های قابل کشف (<span dir="ltr">SmsCapabilities</span>) و پشتیبانی از تزریق وابستگی (<span dir="ltr">DI</span>) را بدون وابستگی مستقیم به ارائه‌دهنده‌ای ارائه می‌دهد.
 
@@ -71,7 +71,7 @@
 <td><span dir="ltr">MockSmsClient</span></td>
 <td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل</td>
 <td>—</td>
-<td>مبتنی بر حافظه با شناسهٔ معین <span dir="ltr">mock-{n}</span></td>
+<td>مبتنی بر حافظه با شناسه معین <span dir="ltr">mock-{n}</span></td>
 </tr>
 <tr>
 <td><span dir="ltr">IranSms.DependencyInjection</span></td>
@@ -91,12 +91,12 @@
                  │         │
       IranSms.DependencyInjection   IranSms.Providers.*  (هرکدام فقط وابسته به Core)
                  ↑         │
-                 └──── برنامهٔ شما ──── new KavenegarClient(apiKey)
+                 └──── برنامه شما ──── new KavenegarClient(apiKey)
 ```
 
 * هر ارائه‌دهنده صرفاً به <span dir="ltr">Core</span> وابسته است؛ نصب پکیج <span dir="ltr">Kavenegar</span> هیچ وابستگی اضافه مانند <span dir="ltr">Microsoft.Extensions.*</span> را به پروژه تحمیل نمی‌کند.
 * پکیج <span dir="ltr">IranSms.DependencyInjection</span> تنها به <span dir="ltr">Core</span> و <span dir="ltr">Microsoft.Extensions.DependencyInjection.Abstractions</span> وابسته است.
-* مدیریت طول عمر <span dir="ltr">HttpClient</span> و اعتبارنامه‌ها بر عهدهٔ برنامهٔ شماست و ثبت آن از طریق <span dir="ltr">AddIranSms</span> انجام می‌شود.
+* مدیریت طول عمر <span dir="ltr">HttpClient</span> و اعتبارنامه‌ها بر عهده برنامه شماست و ثبت آن از طریق <span dir="ltr">AddIranSms</span> انجام می‌شود.
 
 ### قابلیت‌ها
 
@@ -114,16 +114,16 @@
 <tr><td>ارسال انبوه</td><td><span dir="ltr">BulkSend</span></td><td><span dir="ltr">ISmsBulkSender.SendBulkAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
 <tr><td>ارسال الگویی / کد تأیید</td><td><span dir="ltr">OtpSend</span></td><td><span dir="ltr">ISmsOtpSender.SendOtpAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
 <tr><td>وضعیت تحویل</td><td><span dir="ltr">DeliveryStatus</span></td><td><span dir="ltr">ISmsDeliveryReporter.GetMessageStatusAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
-<tr><td>ارسال ناهمگون</td><td><span dir="ltr">HeterogeneousSend</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>ارسال زمان‌بندی‌شده</td><td><span dir="ltr">ScheduledSend</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>تاریخچهٔ پیام‌ها</td><td><span dir="ltr">MessageHistory</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>دریافت پیام</td><td><span dir="ltr">Receive</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>اطلاعات حساب</td><td><span dir="ltr">AccountInfo</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>مدیریت خطوط</td><td><span dir="ltr">LineManagement</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>مدیریت قالب‌ها</td><td><span dir="ltr">TemplateManagement</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>پیام فلش</td><td><span dir="ltr">FlashMessage</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>پیام صوتی</td><td><span dir="ltr">VoiceMessage</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
-<tr><td>اعتبارسنجی پارامترهای قالب</td><td><span dir="ltr">OtpTemplateInspection</span></td><td>—</td><td>🗓 نقشهٔ راه</td></tr>
+<tr><td>ارسال ناهمگون</td><td><span dir="ltr">HeterogeneousSend</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>ارسال زمان‌بندی‌شده</td><td><span dir="ltr">ScheduledSend</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>تاریخچه پیام‌ها</td><td><span dir="ltr">MessageHistory</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>دریافت پیام</td><td><span dir="ltr">Receive</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>اطلاعات حساب</td><td><span dir="ltr">AccountInfo</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>مدیریت خطوط</td><td><span dir="ltr">LineManagement</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>مدیریت قالب‌ها</td><td><span dir="ltr">TemplateManagement</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>پیام فلش</td><td><span dir="ltr">FlashMessage</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>پیام صوتی</td><td><span dir="ltr">VoiceMessage</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>اعتبارسنجی پارامترهای قالب</td><td><span dir="ltr">OtpTemplateInspection</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 </tbody>
 </table>
 
@@ -139,12 +139,13 @@ if (client is ISmsOtpSender otp) { ... }
 
 ### ویژگی‌های کلیدی
 
-* ✅ **بدون وابستگی اضافی:** هستهٔ پروژه بدون هیچ وابستگی خارجی است؛ هر پکیج ارائه‌دهنده تنها به <span dir="ltr">Core</span> وابستگی دارد.
-* ✅ **مدیریت مستقیم کلاینت:** ساخت و نگهداری چرخهٔ عمر <span dir="ltr">HttpClient</span> و کلیدهای دسترسی در اختیار مصرف‌کننده است.
+* ✅ **بدون وابستگی اضافی:** هسته پروژه بدون هیچ وابستگی خارجی است؛ هر پکیج ارائه‌دهنده تنها به <span dir="ltr">Core</span> وابستگی دارد.
+* ✅ **مدیریت مستقیم کلاینت:** ساخت و نگهداری چرخه عمر <span dir="ltr">HttpClient</span> و کلیدهای دسترسی در اختیار مصرف‌کننده است.
 * ✅ **ثبت هوشمند مبتنی بر قابلیت:** در تزریق وابستگی، فقط اینترفیس‌هایی ثبت می‌شوند که توسط کلاینت مربوطه پیاده‌سازی شده باشند.
-* ✅ **قابلیت تست‌پذیری بالا:** ارائهٔ کلاینت <span dir="ltr">Mock</span> با شناسهٔ قطعی <span dir="ltr">mock-{n}</span> جهت تست‌های محلی.
+* ✅ **قابلیت تست‌پذیری بالا:** ارائه کلاینت <span dir="ltr">Mock</span> با شناسه قطعی <span dir="ltr">mock-{n}</span> جهت تست‌های محلی.
+* ✅ **تایماوت HTTP:** چرخه عمر <span dir="ltr">HttpClient</span> در اختیار مصرفکننده است؛ اگر <span dir="ltr">HttpClient</span> تزریق نشود، تایماوت پیشفرض (۱۰۰ ثانیه) اعمال میشود — برای تنظیم دقیق، <span dir="ltr">HttpClient</span> پیکربندیشده خودتان را به سازنده کلاینت بدهید.
 * ✅ **پشتیبانی از <span dir="ltr">netstandard2.0</span>:** قابل استفاده در تمام نسخه‌های <span dir="ltr">.NET</span> (از <span dir="ltr">.NET Framework</span> تا <span dir="ltr">.NET 10</span>).
-* ✅ **مدیریت خطای دقیق:** عدم ارائهٔ مقادیر ساختگی در صورت نبود <span dir="ltr">MessageId</span> و صدور صریح استثنا.
+* ✅ **مدیریت خطای دقیق:** عدم ارائه مقادیر ساختگی در صورت نبود <span dir="ltr">MessageId</span> و صدور صریح استثنا.
 
 ## نصب
 
@@ -157,7 +158,7 @@ dotnet add package IranSms.DependencyInjection   # اختیاری — صرفاً
 
 ## راهنمای سریع
 
-### استفادهٔ مستقیم (بدون DI)
+### استفاده مستقیم (بدون DI)
 
 ```csharp
 using IranSms.Providers.Kavenegar;
@@ -202,7 +203,7 @@ app.MapPost("/sms/send", async (SendRequest req, ISmsClient sms, CancellationTok
 
 > **نکته:** هرگز کلیدهای دسترسی (<span dir="ltr">API Keys</span>) را در سورس‌کد به صورت کُدسخت (<span dir="ltr">Hard-code</span>) قرار ندهید. آن‌ها را از <span dir="ltr">IConfiguration</span>، <span dir="ltr">UserSecrets</span> یا <span dir="ltr">Key Vault</span> بخوانید.
 
-### استفادهٔ هم‌زمان از چند سرویس‌دهنده
+### استفاده هم‌زمان از چند سرویس‌دهنده
 
 ```csharp
 services.AddIranSms(new MockSmsClient("Mock"));
@@ -239,12 +240,12 @@ catch (HttpRequestException)
 <tr>
 <th>نمونه</th>
 <th>توضیحات</th>
-<th>نحوهٔ اجرا</th>
+<th>نحوه اجرا</th>
 </tr>
 </thead>
 <tbody>
-<tr><td><span dir="ltr">samples/Basic</span></td><td>برنامهٔ کنسول بدون <span dir="ltr">DI</span> جهت نمایش تمامی قابلیت‌ها با <span dir="ltr">Mock</span></td><td><span dir="ltr">dotnet run --project samples/Basic</span></td></tr>
-<tr><td><span dir="ltr">samples/AspNetCore</span></td><td>پروژهٔ <span dir="ltr">Minimal API</span> به همراه <span dir="ltr">AddIranSms</span></td><td><span dir="ltr">dotnet run --project samples/AspNetCore</span></td></tr>
+<tr><td><span dir="ltr">samples/Basic</span></td><td>برنامه کنسول بدون <span dir="ltr">DI</span> جهت نمایش تمامی قابلیت‌ها با <span dir="ltr">Mock</span></td><td><span dir="ltr">dotnet run --project samples/Basic</span></td></tr>
+<tr><td><span dir="ltr">samples/AspNetCore</span></td><td>پروژه <span dir="ltr">Minimal API</span> به همراه <span dir="ltr">AddIranSms</span></td><td><span dir="ltr">dotnet run --project samples/AspNetCore</span></td></tr>
 <tr><td><span dir="ltr">samples/MultiProvider</span></td><td>ثبت ۵ ارائه‌دهنده و مسیریابی پویا بر اساس قابلیت‌ها</td><td><span dir="ltr">dotnet run --project samples/MultiProvider</span></td></tr>
 </tbody>
 </table>
@@ -277,9 +278,20 @@ export MELIPAYAMAK_USERNAME=... MELIPAYAMAK_PASSWORD=...
 
 ## تست و پوشش کد
 
+ویندوز (PowerShell):
+
+```powershell
+dotnet build -c Release
+dotnet run --project tests\IranSms.Tests -c Release --no-build --framework net10.0
+dotnet run --project tests\IranSms.Tests -c Release --no-build --framework net8.0
+```
+
+لینوکس / مک (bash):
+
 ```bash
 dotnet build -c Release
-./tests/IranSms.Tests/bin/Release/net10.0/IranSms.Tests.exe
+dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10.0
+dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.0
 ```
 
 شامل ۱۵۰ تست پاس‌شده (<span dir="ltr">xunit v3</span> + <span dir="ltr">FluentAssertions</span>).
