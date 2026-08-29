@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>IranSms.Providers.Mock</PackageId>
     <IsPackable>true</IsPackable>
-    <Description>In-memory Mock provider for IranSms â€” no network, deterministic ids, useful for tests and local development.</Description>
+    <Description>In-memory Mock provider for IranSms — no network, deterministic ids, useful for tests and local development.</Description>
     <PackageTags>sms;ir;mock;iran;provider</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>IranSms.Providers.Melipayamak</PackageId>
     <IsPackable>true</IsPackable>
-    <Description>Melipayamak provider for IranSms â€” send, bulk, OTP and delivery status via REST API.</Description>
+    <Description>Melipayamak provider for IranSms — send, bulk, OTP and delivery status via REST API.</Description>
     <PackageTags>SMS;Melipayamak;IranSms;OTP;provider</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

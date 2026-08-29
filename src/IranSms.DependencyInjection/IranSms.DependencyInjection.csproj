@@ -3,7 +3,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>IranSms.DependencyInjection</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>Provider-agnostic DI infrastructure for IranSms â€” consumer-owned, capability-aware AddIranSms registration. Providers never depend on this package.</Description>
+    <Description>Provider-agnostic DI infrastructure for IranSms — consumer-owned, capability-aware AddIranSms registration. Providers never depend on this package.</Description>
     <PackageTags>sms;iran;dependency-injection;di;abstraction</PackageTags>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>

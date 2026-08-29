@@ -1,7 +1,7 @@
-namespace IranSms.Providers.Melipayamak
+﻿namespace IranSms.Providers.Melipayamak
 {
     /// <summary>
-    /// Melipayamak SMS provider client (REST API, see research doc 03-melipayamak.md).
+    /// Melipayamak SMS provider client (REST API).
     /// Authenticates with username/password (or ApiKey) in the form body.
     /// </summary>
     public sealed class MelipayamakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter

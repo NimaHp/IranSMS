@@ -1,10 +1,10 @@
-using System.Globalization;
+﻿using System.Globalization;
 using IranSms.Providers.SmsIr.Json;
 
 namespace IranSms.Providers.SmsIr
 {
     /// <summary>
-    /// SMS.ir SMS provider client (REST API v1, see research doc 02-smsir.md).
+    /// SMS.ir SMS provider client (REST API v1).
     /// Supports single/bulk send (max 100 mobiles), OTP (verify) and delivery status lookup.
     /// Request/response models follow the official SMS.ir REST docs.
     /// </summary>

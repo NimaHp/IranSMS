@@ -1,7 +1,7 @@
-namespace IranSms.Providers.Kavenegar
+﻿namespace IranSms.Providers.Kavenegar
 {
     /// <summary>
-    /// Maps Kavenegar numeric status codes (see research doc §6) to the
+    /// Maps Kavenegar numeric status codes to the
     /// normalized <see cref="MessageDeliveryState"/>.
     /// </summary>
     internal static class KavenegarStatusMapper

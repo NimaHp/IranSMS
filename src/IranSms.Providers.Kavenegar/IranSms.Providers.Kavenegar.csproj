@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>IranSms.Providers.Kavenegar</PackageId>
     <IsPackable>true</IsPackable>
-    <Description>Kavenegar SMS provider for IranSms â€” send, bulk, OTP and delivery status via REST API.</Description>
+    <Description>Kavenegar SMS provider for IranSms — send, bulk, OTP and delivery status via REST API.</Description>
     <PackageTags>SMS;Kavenegar;IranSms;OTP;provider</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

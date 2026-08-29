@@ -1,11 +1,11 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using IranSms.Providers.Ghasedak.Json;
 
 namespace IranSms.Providers.Ghasedak
 {
     /// <summary>
-    /// Ghasedak SMS provider client (REST gateway, see research doc 04-ghasedak.md).
+    /// Ghasedak SMS provider client (REST gateway).
     /// Authenticates with an ApiKey header on every request.
     /// </summary>
     public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
