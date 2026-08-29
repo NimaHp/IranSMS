@@ -41,8 +41,11 @@ jobs:
         run: dotnet build IranSms.slnx -c Release --no-restore -p:Version="$VERSION"
 
       # Release gate: the full suite must stay green on the exact tag being published.
-      - name: Test
-        run: dotnet run --project tests/IranSms.Tests -c Release --no-build
+      - name: Test (.NET 10)
+        run: dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10.0
+
+      - name: Test (.NET 8)
+        run: dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.0
 
       - name: Pack
         run: |
