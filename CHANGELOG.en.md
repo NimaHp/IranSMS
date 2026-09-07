@@ -6,6 +6,17 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+## 0.1.0-beta.2 — 2026-09-07
+
+* Fixed Mock README sample: `SentMessages`/`msg.Text` → `Messages`/`MessageText`
+* Hardened `GhasedakEnvelope.Deserialize`: malformed JSON now surfaces as `IranSmsException` (not raw `JsonException`); `StatusCode` also accepts string numbers
+* Validated Kavenegar inputs: added `null/whitespace` guards to `SendAsync`/`SendBulkAsync`/`SendOtpAsync` for parity with other providers
+* HttpClient lifetime: all 4 transports and clients (`Kavenegar/Ghasedak/SmsIr/Melipayamak`) now implement `IDisposable` with `_ownsHttp` ownership — disposing the client releases the internally owned `HttpClient`
+* Mock bulk cap: enforced `MaxBulkRecipients=200` for parity with Kavenegar
+* Strict `OtpRequest.SendDate`: all 5 clients throw `NotSupportedException` when `SendDate` is set — no provider honours scheduled sends yet
+* Small perf: removed `System.Linq` allocation from Kavenegar bulk and tightened `SmsIr` JSON options
+* CI/CD: added `concurrency`, NuGet cache, and `dotnet format --verify-no-changes` to `build.yml`; hardened `release.yml` sed and embedded PDB in `Directory.Build.props`
+
 ## 0.1.0-beta.1 — 2026-08-22
 
 First beta — unified ISmsClient abstraction for Iranian SMS providers:

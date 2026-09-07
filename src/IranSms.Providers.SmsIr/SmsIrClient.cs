@@ -6,9 +6,9 @@ namespace IranSms.Providers.SmsIr
     /// <summary>
     /// SMS.ir SMS provider client (REST API v1).
     /// Supports single/bulk send (max 100 mobiles), OTP (verify) and delivery status lookup.
-    /// Request/response models follow the official SMS.ir REST docs.
+    /// Implements <see cref="IDisposable"/> to release the internal HttpClient when caller did not supply one.
     /// </summary>
-    public sealed class SmsIrClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
+    public sealed class SmsIrClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
     {
         private const int MaxBulkRecipients = 100;
 
@@ -108,6 +108,8 @@ namespace IranSms.Providers.SmsIr
         {
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
+            if (request.SendDate.HasValue)
+                throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
 
             var templateIdText = request.TemplateId;
             if (string.IsNullOrWhiteSpace(templateIdText))
@@ -262,6 +264,12 @@ namespace IranSms.Providers.SmsIr
                 ProviderName = "SmsIr",
                 RawResponseBody = body,
             };
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            (_transport as IDisposable)?.Dispose();
         }
     }
 }

@@ -19,6 +19,8 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Also embed PDB in the main nupkg for richer debugging when snupkg is not consumed -->
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
   <!-- Shared NuGet package metadata — single source of truth for all packages.
@@ -28,7 +30,7 @@
   <PropertyGroup>
     <Authors>IranSms Contributors</Authors>
     <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix>beta.1</VersionSuffix>
+    <VersionSuffix>beta.2</VersionSuffix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/NimaHp/IranSMS</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>

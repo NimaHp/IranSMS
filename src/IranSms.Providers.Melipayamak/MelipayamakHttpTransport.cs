@@ -4,16 +4,24 @@
     /// Real Melipayamak transport backed by <see cref="HttpClient"/>.
     /// Posts form-urlencoded to https://rest.payamak-panel.com/api/SendSMS/{action}.
     /// </summary>
-    internal sealed class MelipayamakHttpTransport : IMelipayamakTransport
+    internal sealed class MelipayamakHttpTransport : IMelipayamakTransport, IDisposable
     {
         private const string BaseUrl = "https://rest.payamak-panel.com/api/SendSMS";
         private readonly HttpClient _http;
+        private readonly bool _ownsHttp;
 
         /// <summary>Initializes a new instance of the <see cref="MelipayamakHttpTransport"/> class.</summary>
-        /// <param name="httpClient">Optional pre-configured <see cref="HttpClient"/>.</param>
+        /// <param name="httpClient">Optional pre-configured <see cref="HttpClient"/> — caller-owned when supplied; transport-owned otherwise.</param>
         public MelipayamakHttpTransport(HttpClient? httpClient = null)
         {
+            _ownsHttp = httpClient is null;
             _http = httpClient ?? new HttpClient();
+        }
+
+        public void Dispose()
+        {
+            if (_ownsHttp)
+                _http.Dispose();
         }
 
         /// <inheritdoc />

@@ -22,7 +22,7 @@ namespace IranSms
         /// <summary>Optional sender line (falls back to provider default when null).</summary>
         public string? SenderLine { get; set; }
 
-        /// <summary>Optional scheduled send date-time (provider must support <see cref="SmsCapabilities.ScheduledSend"/>).</summary>
+        /// <summary>Optional scheduled send date-time (provider must support <see cref="SmsCapabilities.ScheduledSend"/>). No provider currently honours this; setting it throws <see cref="NotSupportedException"/> at send time — use a scheduler in your application instead.</summary>
         public DateTimeOffset? SendDate { get; set; }
     }
 }

@@ -6,16 +6,24 @@ namespace IranSms.Providers.Ghasedak
     /// Real HTTP transport for Ghasedak: posts JSON bodies and issues GETs
     /// against the gateway with the ApiKey header.
     /// </summary>
-    internal sealed class GhasedakHttpTransport : IGhasedakTransport
+    internal sealed class GhasedakHttpTransport : IGhasedakTransport, IDisposable
     {
         private const string BaseUrl = "https://gateway.ghasedak.me/rest/api/v1/WebService/";
         private readonly HttpClient _http;
         private readonly string _apiKey;
+        private readonly bool _ownsHttp;
 
         public GhasedakHttpTransport(HttpClient? httpClient, string apiKey)
         {
+            _ownsHttp = httpClient is null;
             _http = httpClient ?? new HttpClient();
             _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
+        }
+
+        public void Dispose()
+        {
+            if (_ownsHttp)
+                _http.Dispose();
         }
 
         public async Task<string> PostJsonAsync(string endpoint, string jsonBody, CancellationToken cancellationToken)

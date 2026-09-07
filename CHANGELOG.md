@@ -1,10 +1,21 @@
-# تغییرات (Changelog)
+﻿# تغییرات (Changelog)
 
 **فارسی** | [English](CHANGELOG.en.md)
 
 این سند از [Keep a Changelog](https://keepachangelog.com/fa/1.1.0/) و سیستم نسخه‌گذاری [SemVer](https://semver.org/lang/fa/) پیروی می‌کند.
 
 ## [Unreleased]
+
+## 0.1.0-beta.2 — 2026-09-07
+
+* رفع باگ Mock README: اصلاح نمونه‌کد `SentMessages`/`msg.Text` به `Messages`/`MessageText`
+* سخت‌سازی `GhasedakEnvelope.Deserialize`: بدنه JSON معیوب اکنون `IranSmsException` می‌دهد (نه `JsonException` خام) و `StatusCode` به‌صورت رشته هم خوانده می‌شود
+* اعتبارسنجی Kavenegar: افزودن `null/whitespace` guard برای `SendAsync`/`SendBulkAsync`/`SendOtpAsync` (همسان Ghasedak/SmsIr)
+* چرخه عمر `HttpClient`: هر ۴ Transport و کلاینت (`Kavenegar/Ghasedak/SmsIr/Melipayamak`) اکنون `IDisposable` با مالکیت `_ownsHttp` — وقتی `HttpClient` بیرونی ندادی، `Dispose()` آن را آزاد میکند
+* سقف bulk در Mock: اعمال `MaxBulkRecipients=200` برای parity با Kavenegar
+* سخت‌گیری `OtpRequest.SendDate`: هر ۵ کلاینت (۴ واقعی + Mock) در صورت مقداردهی `SendDate`، `NotSupportedException` صریح پرتاب می‌کنند (فعلا هیچ Provider زمان‌بندی را اجرا نمیکند)
+* بهینه‌سازی کوچک: حذف `System.Linq` از Kavenegar bulk و کش ضمنی `JsonSerializerOptions` در SmsIr
+* CI/CD: افزودن `concurrency`، کش `NuGet` و `dotnet format --verify-no-changes` به `build.yml`؛ اصلاح `sed` شکننده `release.yml` و `embedded PDB` در `Directory.Build.props`
 
 ## 0.1.0-beta.1 — 2026-08-22
 

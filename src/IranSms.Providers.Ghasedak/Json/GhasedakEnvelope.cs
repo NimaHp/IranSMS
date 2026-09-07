@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Globalization;
+using System.Text.Json;
 
 namespace IranSms.Providers.Ghasedak.Json
 {
@@ -21,33 +22,42 @@ namespace IranSms.Providers.Ghasedak.Json
         /// <summary>Human message (usually Persian).</summary>
         public string? Message { get; set; }
 
-        /// <summary>Deserializes the envelope from a JSON body.</summary>
+        /// <summary>Deserializes the envelope from a JSON body. Returns null on malformed JSON (caller wraps as IranSmsException).</summary>
         public static GhasedakEnvelope? Deserialize(string json)
         {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var env = new GhasedakEnvelope
+            try
             {
-                IsSuccess = root.TryGetProperty("IsSuccess", out var s) && s.ValueKind == JsonValueKind.True,
-                StatusCode = ReadStatusCode(root),
-                Message = root.TryGetProperty("Message", out var m) && m.ValueKind == JsonValueKind.String
-                    ? m.GetString()
-                    : null,
-            };
-            if (root.TryGetProperty("Data", out var data) && data.ValueKind != JsonValueKind.Null)
-            {
-                env.Data = data.Clone();
-            }
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                var env = new GhasedakEnvelope
+                {
+                    IsSuccess = root.TryGetProperty("IsSuccess", out var s) && s.ValueKind == JsonValueKind.True,
+                    StatusCode = ReadStatusCode(root),
+                    Message = root.TryGetProperty("Message", out var m) && m.ValueKind == JsonValueKind.String
+                        ? m.GetString()
+                        : null,
+                };
+                if (root.TryGetProperty("Data", out var data) && data.ValueKind != JsonValueKind.Null)
+                {
+                    env.Data = data.Clone();
+                }
 
-            return env;
+                return env;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
 
         private static int ReadStatusCode(JsonElement root)
         {
-            if (root.TryGetProperty("StatusCode", out var sc) && sc.ValueKind == JsonValueKind.Number)
+            if (root.TryGetProperty("StatusCode", out var sc))
             {
-                if (sc.TryGetInt32(out var i))
+                if (sc.ValueKind == JsonValueKind.Number && sc.TryGetInt32(out var i))
                     return i;
+                if (sc.ValueKind == JsonValueKind.String && int.TryParse(sc.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+                    return parsed;
             }
 
             return 0;

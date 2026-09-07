@@ -27,8 +27,8 @@ var status = await client.GetMessageStatusAsync(
     new MessageIdentifier(result.MessageId, MessageIdentifierType.ProviderMessageId));
 
 // Inspect recorded messages
-foreach (var msg in client.SentMessages)
-    Console.WriteLine($"{msg.Recipient}: {msg.Text}");
+foreach (var msg in client.Messages)
+    Console.WriteLine($"{msg.Recipient}: {msg.MessageText}");
 ```
 
 Supports all four implemented capabilities: `Send`, `BulkSend`, `OtpSend`, `DeliveryStatus`.

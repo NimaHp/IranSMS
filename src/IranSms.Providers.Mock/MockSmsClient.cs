@@ -11,6 +11,8 @@ namespace IranSms.Providers.Mock
     /// </summary>
     public sealed class MockSmsClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
     {
+        private const int MaxBulkRecipients = 200;
+
         private readonly object _lock = new object();
         private readonly List<MockMessage> _messages = new List<MockMessage>();
         private long _nextId;
@@ -106,6 +108,8 @@ namespace IranSms.Providers.Mock
             var list = recipients.ToList();
             if (list.Count == 0)
                 throw new ArgumentException("At least one recipient is required.", nameof(recipients));
+            if (list.Count > MaxBulkRecipients)
+                throw new ArgumentException($"Mock bulk send supports at most {MaxBulkRecipients} recipients (parity with Kavenegar).", nameof(recipients));
 
             var ids = new string[list.Count];
             lock (_lock)
@@ -137,6 +141,8 @@ namespace IranSms.Providers.Mock
                 throw new ArgumentException("Recipient is required.", nameof(recipient));
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
+            if (request.SendDate.HasValue)
+                throw new NotSupportedException("Mock does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
 
             cancellationToken.ThrowIfCancellationRequested();
 

@@ -1,4 +1,4 @@
-name: release
+﻿name: release
 
 on:
   push:
@@ -23,14 +23,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Single source of truth for the package version: the git tag (v0.1.0-beta.1 -> 0.1.0-beta.1).
+      # Single source of truth for the package version: the git tag (v0.1.0-beta.2 -> 0.1.0-beta.2).
       # Local builds fall back to VersionPrefix + VersionSuffix in Directory.Build.props.
       - name: Resolve package version
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            VERSION="0.1.0-beta.1"
+            VERSION="0.1.0-beta.2"
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
@@ -70,13 +70,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Keep the version text in the READMEs in sync with the released tag
-      # ("— نسخهٔ 0.1.0-beta.1" / "— Version 0.1.0-beta.1" on line 3).
+      # ("— نسخه 0.1.0-beta.2" / "— Version 0.1.0-beta.2" on line 3).
       - name: Bump README version text
         if: github.ref_type == 'tag'
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          sed -i "3s/[0-9][0-9.a-z-]*/$VERSION/" README.md
-          sed -i "3s/[0-9][0-9.a-z-]*/$VERSION/" README.en.md
+          # Only touch the version badge line to avoid collateral matches.
+          sed -i -E "3s/(— (نسخه|Version) )[0-9][0-9A-Za-z.\-]*/\1$VERSION/" README.md
+          sed -i -E "3s/(— (نسخه|Version) )[0-9][0-9A-Za-z.\-]*/\1$VERSION/" README.en.md
           git config user.name "NimaHp"
           git config user.email "12736825+NimaHp@users.noreply.github.com"
           git add README.md README.en.md

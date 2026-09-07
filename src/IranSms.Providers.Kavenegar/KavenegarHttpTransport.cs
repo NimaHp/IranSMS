@@ -4,19 +4,28 @@
     /// Real Kavenegar transport backed by <see cref="HttpClient"/>.
     /// Posts form-urlencoded to https://api.kavenegar.com/v1/{api-key}/{method}.json.
     /// </summary>
-    internal sealed class KavenegarHttpTransport : IKavenegarTransport
+    internal sealed class KavenegarHttpTransport : IKavenegarTransport, IDisposable
     {
         private const string BaseUrl = "https://api.kavenegar.com/v1";
         private readonly HttpClient _http;
         private readonly string _apiKey;
+        private readonly bool _ownsHttp;
 
         /// <summary>Initializes a new instance of the <see cref="KavenegarHttpTransport"/> class.</summary>
         /// <param name="apiKey">Kavenegar API key.</param>
-        /// <param name="httpClient">Optional pre-configured <see cref="HttpClient"/>.</param>
+        /// <param name="httpClient">Optional pre-configured <see cref="HttpClient"/> — when supplied, its lifetime is caller-owned; otherwise the transport owns and disposes the internal client.</param>
         public KavenegarHttpTransport(string apiKey, HttpClient? httpClient = null)
         {
             _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
+            _ownsHttp = httpClient is null;
             _http = httpClient ?? new HttpClient();
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (_ownsHttp)
+                _http.Dispose();
         }
 
         /// <inheritdoc />

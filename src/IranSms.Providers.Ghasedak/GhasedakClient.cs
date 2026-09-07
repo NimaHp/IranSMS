@@ -7,8 +7,9 @@ namespace IranSms.Providers.Ghasedak
     /// <summary>
     /// Ghasedak SMS provider client (REST gateway).
     /// Authenticates with an ApiKey header on every request.
+    /// Implements <see cref="IDisposable"/> to release the internal <see cref="HttpClient"/> when caller did not supply one.
     /// </summary>
-    public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
+    public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
     {
         private const int MaxBulkRecipients = 100;
         private const int MaxMessageLength = 1000;
@@ -140,6 +141,8 @@ namespace IranSms.Providers.Ghasedak
                 throw new ArgumentNullException(nameof(recipient));
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
+            if (request.SendDate.HasValue)
+                throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
 
             if (string.IsNullOrWhiteSpace(request.TemplateId))
                 throw new ArgumentException("Ghasedak OTP requires a TemplateId (template name).", nameof(request));
@@ -226,6 +229,12 @@ namespace IranSms.Providers.Ghasedak
                 result.MessageText = msg.GetString();
 
             return result;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            (_transport as IDisposable)?.Dispose();
         }
     }
 }

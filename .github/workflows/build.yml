@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -23,11 +27,21 @@ jobs:
             10.0.x
             8.0.x
 
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
       - name: Restore
         run: dotnet restore IranSms.slnx
 
       - name: Build
         run: dotnet build IranSms.slnx -c Release --no-restore
+
+      - name: Format check
+        run: dotnet format --verify-no-changes --verbosity minimal
 
       - name: Test (.NET 10)
         run: dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10.0

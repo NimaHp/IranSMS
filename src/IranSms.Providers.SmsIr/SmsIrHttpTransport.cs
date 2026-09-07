@@ -7,19 +7,27 @@ namespace IranSms.Providers.SmsIr
     /// Real SMS.ir transport backed by <see cref="HttpClient"/>.
     /// Sends HTTP calls to https://api.sms.ir/v1/{path} with the X-API-KEY header.
     /// </summary>
-    internal sealed class SmsIrHttpTransport : ISmsIrTransport
+    internal sealed class SmsIrHttpTransport : ISmsIrTransport, IDisposable
     {
         private const string BaseUrl = "https://api.sms.ir/v1";
         private readonly HttpClient _http;
         private readonly string _apiKey;
+        private readonly bool _ownsHttp;
 
         /// <summary>Initializes a new instance of the <see cref="SmsIrHttpTransport"/> class.</summary>
         /// <param name="apiKey">The SMS.ir X-API-KEY.</param>
-        /// <param name="httpClient">Optional pre-configured <see cref="HttpClient"/>.</param>
+        /// <param name="httpClient">Optional pre-configured <see cref="HttpClient"/> — caller-owned when supplied; transport-owned otherwise.</param>
         public SmsIrHttpTransport(string apiKey, HttpClient? httpClient = null)
         {
             _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
+            _ownsHttp = httpClient is null;
             _http = httpClient ?? new HttpClient();
+        }
+
+        public void Dispose()
+        {
+            if (_ownsHttp)
+                _http.Dispose();
         }
 
         /// <inheritdoc />

@@ -3,8 +3,9 @@
     /// <summary>
     /// Melipayamak SMS provider client (REST API).
     /// Authenticates with username/password (or ApiKey) in the form body.
+    /// Implements <see cref="IDisposable"/> to release the internal HttpClient when caller did not supply one.
     /// </summary>
-    public sealed class MelipayamakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
+    public sealed class MelipayamakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
     {
         // Official Melipayamak REST action names (relative to the /api/SendSMS base URL).
         private const string SendPath = "SendSMS";
@@ -115,6 +116,9 @@
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
 
+            if (request.SendDate.HasValue)
+                throw new NotSupportedException("Melipayamak (and all current providers) do not honour OtpRequest.SendDate — schedule delivery in your application instead.");
+
             if (string.IsNullOrWhiteSpace(request.Code))
                 throw new ArgumentException("Melipayamak OTP requires a Code.", nameof(request));
 
@@ -157,6 +161,12 @@
             {
                 RawStatus = body.Trim(),
             };
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            (_transport as IDisposable)?.Dispose();
         }
     }
 }

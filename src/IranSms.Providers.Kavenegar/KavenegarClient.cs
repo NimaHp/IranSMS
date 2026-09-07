@@ -4,8 +4,10 @@ namespace IranSms.Providers.Kavenegar
 {
     /// <summary>
     /// Kavenegar SMS provider client.
+    /// Implements <see cref="IDisposable"/> to release the internal <see cref="HttpClient"/> when the transport owns it (no external HttpClient was supplied).
+    /// If you supplied an <see cref="HttpClient"/> at construction, its lifetime remains caller-owned.
     /// </summary>
-    public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
+    public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
     {
         private const int MaxRecipients = 200;
 
@@ -55,6 +57,11 @@ namespace IranSms.Providers.Kavenegar
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(recipient))
+                throw new ArgumentException("Recipient is required.", nameof(recipient));
+            if (message is null)
+                throw new ArgumentNullException(nameof(message));
+
             var parameters = new Dictionary<string, string>
             {
                 ["receptor"] = recipient,
@@ -78,6 +85,8 @@ namespace IranSms.Providers.Kavenegar
         {
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
+            if (message is null)
+                throw new ArgumentNullException(nameof(message));
 
             var list = recipients as IReadOnlyList<string> ?? recipients.ToList();
             if (list.Count == 0)
@@ -94,7 +103,9 @@ namespace IranSms.Providers.Kavenegar
 
             var entries = await SendCoreMultiAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
 
-            var ids = entries.Select(e => e.GetString("messageid")).ToArray();
+            var ids = new string[entries.Count];
+            for (var i = 0; i < entries.Count; i++)
+                ids[i] = entries[i].GetString("messageid");
             return new SmsSendResult(ids[0])
             {
                 RecipientIds = ids,
@@ -107,8 +118,12 @@ namespace IranSms.Providers.Kavenegar
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(recipient))
+                throw new ArgumentException("Recipient is required.", nameof(recipient));
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
+            if (request.SendDate.HasValue)
+                throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
 
             var templateName = request.TemplateId;
             if (string.IsNullOrWhiteSpace(templateName))
@@ -247,6 +262,12 @@ namespace IranSms.Providers.Kavenegar
         {
             if (!string.IsNullOrEmpty(value))
                 parameters[key] = value!;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            (_transport as IDisposable)?.Dispose();
         }
     }
 }
