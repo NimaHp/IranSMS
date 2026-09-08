@@ -7,6 +7,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ## [Unreleased]
 
 * Added — Account info (`ISmsAccountInfo`): `GetBalanceAsync` and `GetSenderLinesAsync` with `AccountBalanceResult` for Kavenegar, Ghasedak, SMS.ir and Melipayamak + Mock, per each provider's official docs; enabled by `SmsCapabilities.AccountInfo` and `LineManagement`.
+* Samples: surfaced `AccountInfo` in all 3 samples — `Basic` (console, `ISmsAccountInfo` + `GetBalance`/`GetSenderLines`), `AspNetCore` (`GET /account/balance` and `/account/lines`) and `MultiProvider` (`AccountInfo` capability dispatch).
 
 ## 0.1.0-beta.2 — 2026-09-07
 

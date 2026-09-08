@@ -66,6 +66,24 @@ app.MapGet("/sms/{messageId}/status", async (
     return Results.Ok(new { result.State, result.RawStatus, result.Recipient, result.Price });
 });
 
+app.MapGet("/account/balance", async (ISmsClient sms, CancellationToken cancellationToken) =>
+{
+    if (sms is not ISmsAccountInfo account)
+        return Results.Problem("The registered provider does not support account info.");
+
+    var result = await account.GetBalanceAsync(cancellationToken);
+    return Results.Ok(new { result.Credit, result.AccountType, result.ExpireDate });
+});
+
+app.MapGet("/account/lines", async (ISmsClient sms, CancellationToken cancellationToken) =>
+{
+    if (sms is not ISmsAccountInfo account)
+        return Results.Problem("The registered provider does not support account info.");
+
+    var lines = await account.GetSenderLinesAsync(cancellationToken);
+    return Results.Ok(new { lines });
+});
+
 app.Run();
 
 /// <summary>POST body for a single SMS send.</summary>

@@ -63,3 +63,13 @@ if (reporter is not null)
         cancellationToken);
     Console.WriteLine($"Status via {((ISmsClient)reporter).ProviderName} -> {status.State} (raw: {status.RawStatus})");
 }
+
+// Capability-aware dispatch: pick the first provider supporting account info.
+var account = clients.FirstOrDefault(c => c.Supports(SmsCapabilities.AccountInfo)) as ISmsAccountInfo;
+if (account is not null)
+{
+    var balance = await account.GetBalanceAsync(cancellationToken);
+    Console.WriteLine($"Balance via {((ISmsClient)account).ProviderName} -> {balance.Credit} (type: {balance.AccountType})");
+    var lines = await account.GetSenderLinesAsync(cancellationToken);
+    Console.WriteLine($"Sender lines via {((ISmsClient)account).ProviderName} -> {(lines.Count == 0 ? "(none — default sender)" : string.Join(", ", lines))}");
+}

@@ -51,7 +51,16 @@ if (mock is ISmsDeliveryReporter reporter)
     Console.WriteLine($"Status of {single.MessageId} -> {status.State} (raw: {status.RawStatus})");
 }
 
-// 4. Inspect what the Mock provider recorded
+// 4. Account info — balance and sender lines
+if (mock is ISmsAccountInfo account)
+{
+    var balance = await account.GetBalanceAsync(cancellationToken);
+    Console.WriteLine($"Balance -> {balance.Credit} (type: {balance.AccountType}, expire: {balance.ExpireDate})");
+    var lines = await account.GetSenderLinesAsync(cancellationToken);
+    Console.WriteLine($"Sender lines -> {(lines.Count == 0 ? "(none)" : string.Join(", ", lines))}");
+}
+
+// 5. Inspect what the Mock provider recorded
 Console.WriteLine("Recorded messages:");
 foreach (var message in mock.Messages)
 {
