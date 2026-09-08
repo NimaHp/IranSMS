@@ -13,6 +13,7 @@
     <ProjectReference Include="..\IranSms.Core\IranSms.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="System.Text.Json" />
     <InternalsVisibleTo Include="IranSms.Tests" />
   </ItemGroup>
   <ItemGroup>

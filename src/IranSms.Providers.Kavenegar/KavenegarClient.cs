@@ -7,7 +7,7 @@ namespace IranSms.Providers.Kavenegar
     /// Implements <see cref="IDisposable"/> to release the internal <see cref="HttpClient"/> when the transport owns it (no external HttpClient was supplied).
     /// If you supplied an <see cref="HttpClient"/> at construction, its lifetime remains caller-owned.
     /// </summary>
-    public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
+    public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
     {
         private const int MaxRecipients = 200;
 
@@ -16,6 +16,8 @@ namespace IranSms.Providers.Kavenegar
         private const string VerifyPath = "verify/lookup";
         private const string StatusPath = "sms/status";
         private const string StatusLocalMessageIdPath = "sms/statuslocalmessageid";
+        private const string AccountInfoPath = "account/info";
+        private const string AccountConfigPath = "account/config";
 
         private readonly IKavenegarTransport _transport;
 
@@ -48,7 +50,9 @@ namespace IranSms.Providers.Kavenegar
             SmsCapabilities.Send
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
-            | SmsCapabilities.DeliveryStatus;
+            | SmsCapabilities.DeliveryStatus
+            | SmsCapabilities.AccountInfo
+            | SmsCapabilities.LineManagement;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -203,6 +207,76 @@ namespace IranSms.Providers.Kavenegar
                 Price = entry.GetNullableDecimal("cost"),
                 SendDate = entry.GetNullableDateTimeOffset("date", isUnix: true),
             };
+        }
+
+        /// <inheritdoc />
+        public async Task<AccountBalanceResult> GetBalanceAsync(CancellationToken cancellationToken = default)
+        {
+            // GET /v1/{api-key}/account/info.json — docs: https://kavenegar.com/rest.html#account-info
+            var body = await _transport.GetAsync(AccountInfoPath, cancellationToken).ConfigureAwait(false);
+            var entries = ParseAccountEntries(body);
+            var entry = entries.Count == 0 ? null : entries[0];
+            if (entry is null)
+                throw new IranSmsException("Kavenegar did not return account info.")
+                {
+                    ProviderName = ProviderName,
+                    RawResponseBody = body,
+                };
+
+            var creditText = entry.GetString("remaincredit");
+            if (!decimal.TryParse(creditText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var credit))
+                credit = entry.GetNullableDecimal("remaincredit") ?? 0m;
+
+            return new AccountBalanceResult(credit)
+            {
+                ExpireDate = entry.GetNullableDateTimeOffset("expiredate", isUnix: true),
+                AccountType = entry.GetNullableString("type"),
+            };
+        }
+
+        /// <inheritdoc />
+        public async Task<IReadOnlyList<string>> GetSenderLinesAsync(CancellationToken cancellationToken = default)
+        {
+            // GET /v1/{api-key}/account/config.json — field defaultsender holds the default line.
+            var body = await _transport.GetAsync(AccountConfigPath, cancellationToken).ConfigureAwait(false);
+            var entries = ParseAccountEntries(body);
+            var entry = entries.Count == 0 ? null : entries[0];
+            var sender = entry?.GetNullableString("defaultsender");
+            if (string.IsNullOrWhiteSpace(sender))
+                return Array.Empty<string>();
+            return new[] { sender! };
+        }
+
+        private List<KavenegarEntry> ParseAccountEntries(string body)
+        {
+            KavenegarEnvelope? envelope;
+            try
+            {
+                envelope = KavenegarJson.Deserialize(body);
+            }
+            catch (Exception ex)
+            {
+                throw new IranSmsException("Kavenegar returned a malformed response.", ex)
+                {
+                    ProviderName = ProviderName,
+                    RawResponseBody = body,
+                };
+            }
+
+            if (envelope is null || envelope.Return is null)
+                throw new IranSmsException("Kavenegar returned an empty envelope.")
+                {
+                    ProviderName = ProviderName,
+                    RawResponseBody = body,
+                };
+            if (envelope.Return.Status != 200)
+                throw new IranSmsException($"Kavenegar API error ({envelope.Return.Status}): {envelope.Return.Message}")
+                {
+                    ProviderName = ProviderName,
+                    ProviderStatusCode = envelope.Return.Status,
+                    RawResponseBody = body,
+                };
+            return envelope.Entries ?? new List<KavenegarEntry>();
         }
 
         private async Task<KavenegarEntry> SendCoreAsync(

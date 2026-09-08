@@ -42,6 +42,9 @@ namespace IranSms.DependencyInjection
             if (client is ISmsDeliveryReporter deliveryReporter)
                 services.AddSingleton<ISmsDeliveryReporter>(deliveryReporter);
 
+            if (client is ISmsAccountInfo accountInfo)
+                services.AddSingleton<ISmsAccountInfo>(accountInfo);
+
             return services;
         }
     }

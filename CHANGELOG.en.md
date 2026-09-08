@@ -6,6 +6,8 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+* Added — Account info (`ISmsAccountInfo`): `GetBalanceAsync` and `GetSenderLinesAsync` with `AccountBalanceResult` for Kavenegar, Ghasedak, SMS.ir and Melipayamak + Mock, per each provider's official docs; enabled by `SmsCapabilities.AccountInfo` and `LineManagement`.
+
 ## 0.1.0-beta.2 — 2026-09-07
 
 * Fixed Mock README sample: `SentMessages`/`msg.Text` → `Messages`/`MessageText`

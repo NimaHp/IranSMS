@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using IranSms.Providers.Ghasedak;
 using Xunit;
 
@@ -63,14 +63,14 @@ namespace IranSms.Tests.Ghasedak
         {
             var transport = new FakeGhasedakTransport
             {
-                PostResponse = "{\"IsSuccess\":false,\"StatusCode\":418,\"Message\":\"اعتبار کافی نیست\"}",
+                PostResponse = "{\"IsSuccess\":false,\"StatusCode\":418,\"Message\":\"?????? ???? ????\"}",
             };
             var client = CreateClient(transport);
 
             Func<Task> act = async () => await client.SendAsync("09120000000", "hi", null, TestContext.Current.CancellationToken);
             var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
             ex.ProviderStatusCode.Should().Be(418);
-            ex.Message.Should().Contain("اعتبار کافی نیست");
+            ex.Message.Should().Contain("?????? ???? ????");
         }
 
         [Fact]
@@ -235,7 +235,7 @@ namespace IranSms.Tests.Ghasedak
         {
             var client = CreateClient(new FakeGhasedakTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo);
             client.ProviderName.Should().Be("Ghasedak");
         }
     }

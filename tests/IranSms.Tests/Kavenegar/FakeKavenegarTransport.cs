@@ -28,5 +28,15 @@ namespace IranSms.Tests.Kavenegar
 
             return Task.FromResult(ResponseBody ?? "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[]}");
         }
+
+        public Task<string> GetAsync(string method, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            LastMethod = method;
+            LastParameters = null;
+            if (ExceptionToThrow != null)
+                throw ExceptionToThrow;
+            return Task.FromResult(ResponseBody ?? "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[]}");
+        }
     }
 }

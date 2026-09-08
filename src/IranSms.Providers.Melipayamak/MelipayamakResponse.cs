@@ -133,5 +133,49 @@ namespace IranSms.Providers.Melipayamak
 
         private static string Truncate(string s, int max = 500)
             => s.Length <= max ? s : s.Substring(0, max);
+
+        internal static string TruncateForLog(string s, int max = 500)
+            => Truncate(s, max);
+
+        internal sealed class RestEnvelope
+        {
+            public string? Value { get; set; }
+            public int RetStatus { get; set; }
+            public string? StrRetStatus { get; set; }
+        }
+
+        internal static RestEnvelope? ParseRestEnvelope(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+            var trimmed = body.Trim();
+            if (!trimmed.StartsWith("{", StringComparison.Ordinal))
+                return null;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(trimmed);
+                var root = doc.RootElement;
+                var env = new RestEnvelope();
+                if (root.TryGetProperty("Value", out var v))
+                {
+                    if (v.ValueKind == System.Text.Json.JsonValueKind.String)
+                        env.Value = v.GetString();
+                    else if (v.ValueKind != System.Text.Json.JsonValueKind.Null)
+                        env.Value = v.GetRawText().Trim('"');
+                }
+
+                if (root.TryGetProperty("RetStatus", out var rs) && rs.ValueKind == System.Text.Json.JsonValueKind.Number && rs.TryGetInt32(out var rsi))
+                    env.RetStatus = rsi;
+                else if (root.TryGetProperty("RetStatus", out var rs2) && rs2.ValueKind == System.Text.Json.JsonValueKind.String && int.TryParse(rs2.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var rsi2))
+                    env.RetStatus = rsi2;
+                if (root.TryGetProperty("StrRetStatus", out var srs) && srs.ValueKind == System.Text.Json.JsonValueKind.String)
+                    env.StrRetStatus = srs.GetString();
+                return env;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return null;
+            }
+        }
     }
 }

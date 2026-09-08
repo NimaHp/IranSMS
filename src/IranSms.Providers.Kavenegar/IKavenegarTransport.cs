@@ -12,5 +12,11 @@
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The raw response body.</returns>
         Task<string> PostAsync(string method, IReadOnlyDictionary<string, string> parameters, CancellationToken cancellationToken);
+
+        /// <summary>Performs a GET against the given method path.</summary>
+        /// <param name="method">The Kavenegar method (e.g. <c>account/info</c>).</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The raw response body.</returns>
+        Task<string> GetAsync(string method, CancellationToken cancellationToken);
     }
 }

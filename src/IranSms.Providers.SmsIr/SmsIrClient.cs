@@ -8,7 +8,7 @@ namespace IranSms.Providers.SmsIr
     /// Supports single/bulk send (max 100 mobiles), OTP (verify) and delivery status lookup.
     /// Implements <see cref="IDisposable"/> to release the internal HttpClient when caller did not supply one.
     /// </summary>
-    public sealed class SmsIrClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
+    public sealed class SmsIrClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
     {
         private const int MaxBulkRecipients = 100;
 
@@ -16,6 +16,8 @@ namespace IranSms.Providers.SmsIr
         private const string SendBulkPath = "send/bulk";
         private const string SendVerifyPath = "send/verify";
         private const string SendStatusPrefix = "send/";
+        private const string CreditPath = "credit";
+        private const string LinePath = "line";
 
         private readonly ISmsIrTransport _transport;
 
@@ -48,7 +50,9 @@ namespace IranSms.Providers.SmsIr
             SmsCapabilities.Send
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
-            | SmsCapabilities.DeliveryStatus;
+            | SmsCapabilities.DeliveryStatus
+            | SmsCapabilities.AccountInfo
+            | SmsCapabilities.LineManagement;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -178,6 +182,62 @@ namespace IranSms.Providers.SmsIr
                 SendDate = data.SendDateTime is long sendAt ? DateTimeOffset.FromUnixTimeSeconds(sendAt) : null,
                 MessageText = data.MessageText,
             };
+        }
+
+        /// <inheritdoc />
+        public async Task<AccountBalanceResult> GetBalanceAsync(CancellationToken cancellationToken = default)
+        {
+            // GET /v1/credit — data is a bare decimal (e.g. { status:1, data: 165.3 })
+            var body = await _transport.GetAsync(CreditPath, cancellationToken).ConfigureAwait(false);
+            var raw = SmsIrJson.DeserializeRaw(body);
+            if (raw is null || raw.Status != 1)
+                throw new IranSmsException(raw is null ? "SMS.ir returned an unparseable envelope." : $"SMS.ir API error ({raw.Status}): {raw.Message}")
+                {
+                    ProviderName = ProviderName,
+                    ProviderStatusCode = raw?.Status,
+                    RawResponseBody = body,
+                };
+            var creditVal = raw.DataElement.HasValue ? SmsIrJson.ExtractDecimal(raw.DataElement.Value) : 0m;
+            return new AccountBalanceResult(creditVal);
+        }
+
+        /// <inheritdoc />
+        public async Task<IReadOnlyList<string>> GetSenderLinesAsync(CancellationToken cancellationToken = default)
+        {
+            // GET /v1/line — data is Array<Long>
+            var body = await _transport.GetAsync(LinePath, cancellationToken).ConfigureAwait(false);
+            var envelope = SmsIrJson.Deserialize<long[]>(body);
+            if (envelope is null || envelope.Status != 1)
+            {
+                var raw = SmsIrJson.DeserializeRaw(body);
+                if (raw is null || raw.Status != 1)
+                    throw new IranSmsException(raw is null ? "SMS.ir returned an unparseable envelope." : $"SMS.ir API error ({raw.Status}): {raw.Message}")
+                    {
+                        ProviderName = ProviderName,
+                        ProviderStatusCode = raw?.Status,
+                        RawResponseBody = body,
+                    };
+                if (raw.DataElement is null || raw.DataElement.Value.ValueKind != System.Text.Json.JsonValueKind.Array)
+                    return Array.Empty<string>();
+                var list = new List<string>();
+                foreach (var el in raw.DataElement.Value.EnumerateArray())
+                {
+                    if (el.ValueKind == System.Text.Json.JsonValueKind.Number && el.TryGetInt64(out var n))
+                        list.Add(n.ToString(CultureInfo.InvariantCulture));
+                    else if (el.ValueKind == System.Text.Json.JsonValueKind.String)
+                        list.Add(el.GetString() ?? string.Empty);
+                }
+
+                return list;
+            }
+
+            var data = envelope.Data;
+            if (data is null || data.Length == 0)
+                return Array.Empty<string>();
+            var result = new string[data.Length];
+            for (var i = 0; i < data.Length; i++)
+                result[i] = data[i].ToString(CultureInfo.InvariantCulture);
+            return result;
         }
 
         private static SmsSendResult BuildBulkResult(SmsIrBulkSendResult data)

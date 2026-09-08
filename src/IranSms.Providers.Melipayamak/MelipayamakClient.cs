@@ -5,12 +5,16 @@
     /// Authenticates with username/password (or ApiKey) in the form body.
     /// Implements <see cref="IDisposable"/> to release the internal HttpClient when caller did not supply one.
     /// </summary>
-    public sealed class MelipayamakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
+    public sealed class MelipayamakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
     {
         // Official Melipayamak REST action names (relative to the /api/SendSMS base URL).
         private const string SendPath = "SendSMS";
         private const string SendOtpPath = "SendOtp";
         private const string GetDeliveriesPath = "GetDeliveries2";
+        private const string GetCreditPath = "GetCredit";
+        private const string GetNumbersPath = "GetUserNumbers";
+
+        private static readonly char[] NumbersSeparators = new char[] { ',', '\n', '\r' };
 
         private readonly IMelipayamakTransport _transport;
         private readonly string _username;
@@ -53,7 +57,9 @@
             SmsCapabilities.Send
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
-            | SmsCapabilities.DeliveryStatus;
+            | SmsCapabilities.DeliveryStatus
+            | SmsCapabilities.AccountInfo
+            | SmsCapabilities.LineManagement;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -161,6 +167,117 @@
             {
                 RawStatus = body.Trim(),
             };
+        }
+
+        /// <inheritdoc />
+        public async Task<AccountBalanceResult> GetBalanceAsync(CancellationToken cancellationToken = default)
+        {
+            // POST GetCredit — RestClient.cs endpoint api/SendSMS/GetCredit returns JSON { Value, RetStatus, StrRetStatus }.
+            // See https://github.com/Melipayamak/melipayamak-Csharp/blob/master/RestClient.cs and https://www.melipayamak.com/api/getcredit/
+            var form = new Dictionary<string, string>
+            {
+                ["username"] = _username,
+                ["password"] = _password,
+            };
+            var body = await _transport.PostFormAsync(GetCreditPath, form, cancellationToken).ConfigureAwait(false);
+            var parsed = MelipayamakResponse.ParseRestEnvelope(body);
+            if (parsed is not null && parsed.RetStatus == 1)
+            {
+                if (decimal.TryParse(parsed.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var credit))
+                    return new AccountBalanceResult(credit);
+                // Value may be numeric JSON — try raw
+                if (!string.IsNullOrWhiteSpace(parsed.Value))
+                    throw new IranSmsException($"Melipayamak returned an unrecognized credit value: {MelipayamakResponse.TruncateForLog(parsed.Value ?? string.Empty)}")
+                    {
+                        ProviderName = ProviderName,
+                        RawResponseBody = body,
+                    };
+            }
+
+            if (parsed is not null && parsed.RetStatus != 1)
+                throw new IranSmsException($"Melipayamak API error ({parsed.RetStatus}): {parsed.StrRetStatus ?? MelipayamakResponse.DescribeError(parsed.RetStatus)}")
+                {
+                    ProviderName = ProviderName,
+                    ProviderStatusCode = parsed.RetStatus,
+                    RawResponseBody = body,
+                };
+
+            // Legacy plain-number fallback: some deployments return bare 42.5
+            var trimmed = body.Trim().Trim('"');
+            if (decimal.TryParse(trimmed, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var plainCredit) && plainCredit >= 0)
+                return new AccountBalanceResult(plainCredit);
+
+            throw new IranSmsException($"Melipayamak returned an unrecognized credit response: {MelipayamakResponse.TruncateForLog(body.Trim())}")
+            {
+                ProviderName = ProviderName,
+                RawResponseBody = body,
+            };
+        }
+
+        /// <inheritdoc />
+        public async Task<IReadOnlyList<string>> GetSenderLinesAsync(CancellationToken cancellationToken = default)
+        {
+            // POST GetUserNumbers — RestClient.cs: GetUserNumbersOp = "GetUserNumbers" on api/SendSMS/
+            var form = new Dictionary<string, string>
+            {
+                ["username"] = _username,
+                ["password"] = _password,
+            };
+            var body = await _transport.PostFormAsync(GetNumbersPath, form, cancellationToken).ConfigureAwait(false);
+            var parsed = MelipayamakResponse.ParseRestEnvelope(body);
+            if (parsed is not null)
+            {
+                if (parsed.RetStatus != 1)
+                    throw new IranSmsException($"Melipayamak API error ({parsed.RetStatus}): {parsed.StrRetStatus ?? MelipayamakResponse.DescribeError(parsed.RetStatus)}")
+                    {
+                        ProviderName = ProviderName,
+                        ProviderStatusCode = parsed.RetStatus,
+                        RawResponseBody = body,
+                    };
+
+                var value = parsed.Value ?? string.Empty;
+                var t = value.Trim();
+                if (string.IsNullOrEmpty(t))
+                    return Array.Empty<string>();
+                // Value is often JSON-encoded array string: "[\"5000...\"]" — peel it.
+                if (t.StartsWith("[", StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        var arr = System.Text.Json.JsonSerializer.Deserialize<string[]>(t);
+                        if (arr != null)
+                            return arr.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                    }
+                    catch (System.Text.Json.JsonException) { }
+                }
+
+                var parts = t.Split(NumbersSeparators, StringSplitOptions.RemoveEmptyEntries);
+                var lines = parts.Select(p => p.Trim().Trim('"', '\'')).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                if (lines.Length > 0)
+                    return lines;
+                return new[] { t.Trim('"', '\'') };
+            }
+
+            // Legacy plain fallback (bare CSV/JSON without envelope)
+            var trimmed = body.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+                return Array.Empty<string>();
+            if (trimmed.StartsWith("[", StringComparison.Ordinal))
+            {
+                try
+                {
+                    var arr = System.Text.Json.JsonSerializer.Deserialize<string[]>(trimmed);
+                    if (arr != null)
+                        return arr.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+                }
+                catch (System.Text.Json.JsonException) { }
+            }
+
+            var legacyParts = trimmed.Split(NumbersSeparators, StringSplitOptions.RemoveEmptyEntries);
+            var legacyLines = legacyParts.Select(p => p.Trim().Trim('"', '\'')).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+            if (legacyLines.Length > 0)
+                return legacyLines;
+            return new[] { trimmed.Trim('"', '\'') };
         }
 
         /// <inheritdoc />

@@ -9,7 +9,7 @@ namespace IranSms.Providers.Ghasedak
     /// Authenticates with an ApiKey header on every request.
     /// Implements <see cref="IDisposable"/> to release the internal <see cref="HttpClient"/> when caller did not supply one.
     /// </summary>
-    public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, IDisposable
+    public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
     {
         private const int MaxBulkRecipients = 100;
         private const int MaxMessageLength = 1000;
@@ -19,9 +19,9 @@ namespace IranSms.Providers.Ghasedak
         private const string SendBulkPath = "SendBulkSMS";
         private const string SendOtpPath = "SendOtpSMS";
         private const string CheckSmsStatusPath = "CheckSmsStatus";
+        private const string AccountInfoPath = "GetAccountInformation";
 
         private readonly IGhasedakTransport _transport;
-        private readonly string _apiKey;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GhasedakClient"/> class.
@@ -42,7 +42,6 @@ namespace IranSms.Providers.Ghasedak
                 throw new ArgumentNullException(nameof(apiKey));
             if (apiKey.Length == 0)
                 throw new ArgumentException("API key cannot be empty.", nameof(apiKey));
-            _apiKey = apiKey;
         }
 
         /// <inheritdoc />
@@ -53,7 +52,8 @@ namespace IranSms.Providers.Ghasedak
             SmsCapabilities.Send
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
-            | SmsCapabilities.DeliveryStatus;
+            | SmsCapabilities.DeliveryStatus
+            | SmsCapabilities.AccountInfo;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -229,6 +229,56 @@ namespace IranSms.Providers.Ghasedak
                 result.MessageText = msg.GetString();
 
             return result;
+        }
+
+        /// <inheritdoc />
+        public async Task<AccountBalanceResult> GetBalanceAsync(CancellationToken cancellationToken = default)
+        {
+            // GET GetAccountInformation — https://ghasedak.me/docs (ApiKey header)
+            var raw = await _transport.GetAsync(AccountInfoPath, new Dictionary<string, string>(), cancellationToken).ConfigureAwait(false);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
+            if (envelope?.Data is null || envelope.Data.Value.ValueKind != JsonValueKind.Object)
+                throw new IranSmsException("Ghasedak did not return account information.")
+                {
+                    ProviderName = ProviderName,
+                    RawResponseBody = raw,
+                };
+
+            var data = envelope.Data.Value;
+            decimal credit = 0m;
+            if (data.TryGetProperty("Credit", out var cr))
+            {
+                if (cr.ValueKind == JsonValueKind.Number && cr.TryGetDecimal(out var d))
+                    credit = d;
+                else if (cr.ValueKind == JsonValueKind.String && decimal.TryParse(cr.GetString(), System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+                    credit = p;
+            }
+
+            DateTimeOffset? expireDate = null;
+            if (data.TryGetProperty("ExpireDate", out var ed) && ed.ValueKind == JsonValueKind.String)
+            {
+                var s = ed.GetString();
+                if (!string.IsNullOrWhiteSpace(s) && DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                    expireDate = dt;
+            }
+
+            string? plan = null;
+            if (data.TryGetProperty("Plan", out var pl) && pl.ValueKind == JsonValueKind.String)
+                plan = pl.GetString();
+
+            return new AccountBalanceResult(credit)
+            {
+                ExpireDate = expireDate,
+                AccountType = plan,
+            };
+        }
+
+        /// <inheritdoc />
+        public Task<IReadOnlyList<string>> GetSenderLinesAsync(CancellationToken cancellationToken = default)
+        {
+            // Ghasedak has no dedicated sender-line list endpoint; the default line is selected
+            // by the gateway when lineNumber is omitted. Return an empty list to signal that.
+            return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
         }
 
         /// <inheritdoc />

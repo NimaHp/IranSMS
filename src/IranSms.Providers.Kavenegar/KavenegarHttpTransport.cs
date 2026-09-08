@@ -56,6 +56,28 @@
             }
         }
 
+        /// <inheritdoc />
+        public async Task<string> GetAsync(string method, CancellationToken cancellationToken)
+        {
+            var url = $"{BaseUrl}/{Uri.EscapeDataString(_apiKey)}/{method}.json";
+            using (var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false))
+            {
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new IranSmsException(
+                        $"Kavenegar HTTP error ({(int)response.StatusCode}): {Truncate(body)}")
+                    {
+                        ProviderName = "Kavenegar",
+                        ProviderStatusCode = (int)response.StatusCode,
+                        RawResponseBody = body,
+                    };
+                }
+
+                return body;
+            }
+        }
+
         private static string Truncate(string s, int max = 500)
             => s.Length <= max ? s : s.Substring(0, max);
     }

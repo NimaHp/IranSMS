@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace IranSms.Providers.SmsIr.Json
@@ -143,6 +144,46 @@ namespace IranSms.Providers.SmsIr.Json
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
+
+        /// <summary>Raw envelope for endpoints where data is a primitive/array (credit, line).</summary>
+        internal sealed class RawEnvelope
+        {
+            public int Status { get; set; }
+            public string? Message { get; set; }
+            public JsonElement? DataElement { get; set; }
+        }
+
+        internal static RawEnvelope? DeserializeRaw(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                var raw = new RawEnvelope();
+                if (root.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.Number && st.TryGetInt32(out var s))
+                    raw.Status = s;
+                if (root.TryGetProperty("message", out var msg) && msg.ValueKind == JsonValueKind.String)
+                    raw.Message = msg.GetString();
+                if (root.TryGetProperty("data", out var data) && data.ValueKind != JsonValueKind.Null)
+                    raw.DataElement = data.Clone();
+                return raw;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        internal static decimal ExtractDecimal(JsonElement el)
+        {
+            if (el.ValueKind == JsonValueKind.Number && el.TryGetDecimal(out var d))
+                return d;
+            if (el.ValueKind == JsonValueKind.String && decimal.TryParse(el.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+                return p;
+            return 0m;
+        }
 
         /// <summary>Serializes a request payload to JSON (camelCase keys).</summary>
         public static string Serialize<T>(T payload)

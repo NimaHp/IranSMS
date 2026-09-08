@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using IranSms.Providers.SmsIr;
 using Xunit;
 
@@ -23,7 +23,7 @@ namespace IranSms.Tests.SmsIr
             => new SmsIrClient(transport, ApiKey);
 
         private static string OkData(string dataJson)
-            => $"{{\"status\":1,\"message\":\"موفق\",\"data\":{dataJson}}}";
+            => $"{{\"status\":1,\"message\":\"????\",\"data\":{dataJson}}}";
 
         [Fact]
         public void Constructor_Throws_WhenApiKeyNull()
@@ -251,7 +251,7 @@ namespace IranSms.Tests.SmsIr
         {
             var transport = new FakeSmsIrTransport
             {
-                ResponseBody = "{\"status\":0,\"message\":\"نامعتبر\",\"data\":null}",
+                ResponseBody = "{\"status\":0,\"message\":\"???????\",\"data\":null}",
             };
             var client = CreateClient(transport);
 
@@ -266,7 +266,7 @@ namespace IranSms.Tests.SmsIr
         {
             var client = CreateClient(new FakeSmsIrTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
             client.ProviderName.Should().Be("SmsIr");
         }
     }

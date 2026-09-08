@@ -9,21 +9,27 @@ namespace IranSms.Providers.Mock
     /// (state: Delivered for single/OTP sends, Queued for bulk). Useful for
     /// tests, demos and local development without a real provider account.
     /// </summary>
-    public sealed class MockSmsClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter
+    public sealed class MockSmsClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo
     {
         private const int MaxBulkRecipients = 200;
 
         private readonly object _lock = new object();
         private readonly List<MockMessage> _messages = new List<MockMessage>();
         private long _nextId;
+        private decimal _credit;
+        private readonly List<string> _senderLines;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MockSmsClient"/> class.
         /// </summary>
         /// <param name="providerName">Optional display name (default "Mock").</param>
-        public MockSmsClient(string? providerName = null)
+        /// <param name="credit">Initial mock credit (default 100000).</param>
+        /// <param name="senderLines">Initial mock sender lines (default ["50001234"]).</param>
+        public MockSmsClient(string? providerName = null, decimal credit = 100000m, IEnumerable<string>? senderLines = null)
         {
             ProviderName = string.IsNullOrWhiteSpace(providerName) ? "Mock" : providerName!;
+            _credit = credit;
+            _senderLines = senderLines is null ? new List<string> { "50001234" } : new List<string>(senderLines);
         }
 
         /// <inheritdoc />
@@ -31,7 +37,7 @@ namespace IranSms.Providers.Mock
 
         /// <inheritdoc />
         public SmsCapabilities Capabilities =>
-            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus;
+            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement;
 
         /// <summary>
         /// Gets a snapshot of all messages recorded so far (newest last).
@@ -204,6 +210,26 @@ namespace IranSms.Providers.Mock
                 MessageText = found.MessageText,
                 SendDate = found.SendDate,
             });
+        }
+
+        /// <inheritdoc />
+        public Task<AccountBalanceResult> GetBalanceAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                return Task.FromResult(new AccountBalanceResult(_credit));
+            }
+        }
+
+        /// <inheritdoc />
+        public Task<IReadOnlyList<string>> GetSenderLinesAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_lock)
+            {
+                return Task.FromResult<IReadOnlyList<string>>(_senderLines.ToArray());
+            }
         }
 
         private string NextId()

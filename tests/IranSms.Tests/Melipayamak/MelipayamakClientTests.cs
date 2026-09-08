@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using IranSms.Providers.Melipayamak;
 using Xunit;
 
@@ -204,7 +204,7 @@ namespace IranSms.Tests.Melipayamak
         {
             var client = CreateClient(new FakeMelipayamakTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
             client.ProviderName.Should().Be("Melipayamak");
         }
     }
