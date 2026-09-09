@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## 0.2.0-beta.1 — 2026-09-09
+
 * افزوده شد — اطلاعات حساب (`ISmsAccountInfo`): `GetBalanceAsync` و `GetSenderLinesAsync` با `AccountBalanceResult` برای کاوه‌نگار، قاصدک، SMS.ir و ملی‌پیامک + Mock، مطابق مستندات رسمی هر سرویس؛ فعال با پرچم‌های `SmsCapabilities.AccountInfo` و `LineManagement`.
 * نمونه‌ها: نمایش `AccountInfo` در هر ۳ نمونه — `Basic` (کنسول، `ISmsAccountInfo` + `GetBalance`/`GetSenderLines`)، `AspNetCore` (`GET /account/balance` و `/account/lines`) و `MultiProvider` (dispatch قابلیت `AccountInfo`).
 

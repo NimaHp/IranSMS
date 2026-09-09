@@ -29,8 +29,8 @@
        overrides the version from the git tag (see release.yml). -->
   <PropertyGroup>
     <Authors>IranSms Contributors</Authors>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix>beta.2</VersionSuffix>
+    <VersionPrefix>0.2.0</VersionPrefix>
+    <VersionSuffix>beta.1</VersionSuffix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/NimaHp/IranSMS</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
