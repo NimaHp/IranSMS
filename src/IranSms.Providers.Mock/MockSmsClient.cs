@@ -32,6 +32,17 @@ namespace IranSms.Providers.Mock
             _senderLines = senderLines is null ? new List<string> { "50001234" } : new List<string>(senderLines);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MockSmsClient"/> class.
+        /// Compatibility overload kept for binaries compiled against 0.1.0-beta.2
+        /// (adding optional parameters changes the constructor signature).
+        /// </summary>
+        /// <param name="providerName">Optional display name (default "Mock").</param>
+        public MockSmsClient(string? providerName)
+            : this(providerName, 100000m, null)
+        {
+        }
+
         /// <inheritdoc />
         public string ProviderName { get; }
 
