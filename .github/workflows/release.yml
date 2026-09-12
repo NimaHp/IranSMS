@@ -50,7 +50,7 @@ jobs:
       - name: Pack
         run: |
           for p in Core DependencyInjection Providers.Kavenegar Providers.Ghasedak Providers.SmsIr Providers.Melipayamak Providers.Mock; do
-            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release --no-build -o artifacts -p:Version="$VERSION"
+            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release --no-build -o artifacts -p:Version="$VERSION" -p:IranSmsValidatePackage=true
           done
 
       # Trusted Publishing (OIDC): NuGet/login exchanges the GitHub Actions OIDC

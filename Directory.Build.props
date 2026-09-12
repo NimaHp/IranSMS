@@ -21,6 +21,13 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <!-- Also embed PDB in the main nupkg for richer debugging when snupkg is not consumed -->
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+
+    <!-- NuGet package validation (API compat gate): compares the packed API surface
+         against the last published baseline and fails the pack on breaking changes.
+         Opt-in via -p:IranSmsValidatePackage=true (CI pack steps) so local builds
+         never require baseline downloads from NuGet.org. -->
+    <EnablePackageValidation Condition="'$(IranSmsValidatePackage)' == 'true'">true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>0.2.0-beta.1</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Shared NuGet package metadata — single source of truth for all packages.

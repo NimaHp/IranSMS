@@ -14,9 +14,27 @@ var kavenegarKey = builder.Configuration["Kavenegar:ApiKey"]
     ?? Environment.GetEnvironmentVariable("KAVENEGAR_API_KEY");
 
 if (!string.IsNullOrWhiteSpace(kavenegarKey))
-    builder.Services.AddIranSms(new KavenegarClient(kavenegarKey));
+{
+    // Production path: pooled HttpClient via IHttpClientFactory (handler pooling
+    // with DNS refresh, per-call Timeout). The KavenegarClient instance stays
+    // consumer-owned; the factory owns the handler lifetime.
+    // Simple alternative: builder.Services.AddIranSms(new KavenegarClient(kavenegarKey)).
+    builder.Services.AddHttpClient("kavenegar", client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
+    builder.Services.AddSingleton<KavenegarClient>(sp =>
+        new KavenegarClient(kavenegarKey, sp.GetRequiredService<IHttpClientFactory>().CreateClient("kavenegar")));
+    builder.Services.AddSingleton<ISmsClient>(sp => sp.GetRequiredService<KavenegarClient>());
+    builder.Services.AddSingleton<ISmsBulkSender>(sp => sp.GetRequiredService<KavenegarClient>());
+    builder.Services.AddSingleton<ISmsOtpSender>(sp => sp.GetRequiredService<KavenegarClient>());
+    builder.Services.AddSingleton<ISmsDeliveryReporter>(sp => sp.GetRequiredService<KavenegarClient>());
+    builder.Services.AddSingleton<ISmsAccountInfo>(sp => sp.GetRequiredService<KavenegarClient>());
+}
 else
+{
     builder.Services.AddIranSms(new MockSmsClient("Mock"));
+}
 
 var app = builder.Build();
 

@@ -52,6 +52,12 @@ jobs:
       - name: Smoke test (.NET Standard 2.0 consumer)
         run: dotnet build tests/IranSms.NetStandard2.0Consumer -c Release --no-restore
 
+      - name: Pack (package validation)
+        run: |
+          for p in Core DependencyInjection Providers.Kavenegar Providers.Ghasedak Providers.SmsIr Providers.Melipayamak Providers.Mock; do
+            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release --no-build -o artifacts -p:IranSmsValidatePackage=true
+          done
+
       - name: Upload coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
