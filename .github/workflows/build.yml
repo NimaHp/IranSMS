@@ -52,10 +52,13 @@ jobs:
       - name: Smoke test (.NET Standard 2.0 consumer)
         run: dotnet build tests/IranSms.NetStandard2.0Consumer -c Release --no-restore
 
+      # NOTE: no --no-build here on purpose — the baseline package is fetched
+      # via restore, which --no-build would skip (then validation crashes with
+      # FileNotFoundException instead of comparing APIs).
       - name: Pack (package validation)
         run: |
           for p in Core DependencyInjection Providers.Kavenegar Providers.Ghasedak Providers.SmsIr Providers.Melipayamak Providers.Mock; do
-            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release --no-build -o artifacts -p:IranSmsValidatePackage=true
+            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release -o artifacts -p:IranSmsValidatePackage=true
           done
 
       - name: Upload coverage report
