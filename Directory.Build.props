@@ -27,7 +27,7 @@
          Opt-in via -p:IranSmsValidatePackage=true (CI pack steps) so local builds
          never require baseline downloads from NuGet.org. -->
     <EnablePackageValidation Condition="'$(IranSmsValidatePackage)' == 'true'">true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>0.2.0-beta.1</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>0.1.0-beta.2</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Shared NuGet package metadata — single source of truth for all packages.
