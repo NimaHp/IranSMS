@@ -29,9 +29,13 @@ var status = await client.GetMessageStatusAsync(
 // Inspect recorded messages
 foreach (var msg in client.Messages)
     Console.WriteLine($"{msg.Recipient}: {msg.MessageText}");
+
+// Account info — configured credit + sender lines
+var balance = await client.GetBalanceAsync();
+var lines = await client.GetSenderLinesAsync();
 ```
 
-Supports all four implemented capabilities: `Send`, `BulkSend`, `OtpSend`, `DeliveryStatus`.
+Supports all six implemented capabilities: `Send`, `BulkSend`, `OtpSend`, `DeliveryStatus`, `AccountInfo`, `LineManagement`.
 
 ## License
 

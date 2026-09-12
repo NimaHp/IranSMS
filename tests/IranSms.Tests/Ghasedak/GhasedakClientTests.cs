@@ -231,6 +231,47 @@ namespace IranSms.Tests.Ghasedak
         }
 
         [Fact]
+        public async Task GetBalanceAsync_ParsesCredit_Plan_Expire()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                GetResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{\"Credit\":9135538,\"ExpireDate\":\"2024-07-16T10:48:21+03:30\",\"Plan\":\"silver\"}}",
+            };
+            var client = CreateClient(transport);
+
+            var result = await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            result.Credit.Should().Be(9135538m);
+            result.AccountType.Should().Be("silver");
+            result.ExpireDate.Should().NotBeNull();
+            transport.LastEndpoint.Should().Be("GetAccountInformation");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_ApiError_Throws()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                GetResponse = "{\"IsSuccess\":false,\"StatusCode\":418,\"Message\":\"error\"}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(418);
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_ReturnsEmpty_NoEndpoint()
+        {
+            var client = CreateClient(new FakeGhasedakTransport());
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().BeEmpty();
+        }
+
+        [Fact]
         public void Capabilities_AreCorrect()
         {
             var client = CreateClient(new FakeGhasedakTransport());

@@ -6,6 +6,8 @@ namespace IranSms.Tests.Mock
 {
     public class MockSmsClientTests
     {
+        private static readonly string[] CustomLines = { "50001", "30002" };
+
         private static MockSmsClient CreateClient() => new MockSmsClient();
 
         [Fact]
@@ -170,6 +172,42 @@ namespace IranSms.Tests.Mock
             client.Messages.Should().BeEmpty();
             var result = await client.SendAsync("09120000000", "b", null, TestContext.Current.CancellationToken);
             result.MessageId.Should().Be("mock-1");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_ReturnsConfiguredCredit()
+        {
+            var client = new MockSmsClient(credit: 42.5m);
+
+            var result = await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            result.Credit.Should().Be(42.5m);
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_Defaults_To100000()
+        {
+            var result = await CreateClient().GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            result.Credit.Should().Be(100000m);
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_ReturnsConfiguredLines()
+        {
+            var client = new MockSmsClient(senderLines: CustomLines);
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().Equal("50001", "30002");
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_Defaults_ToSingleLine()
+        {
+            var lines = await CreateClient().GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().Equal("50001234");
         }
     }
 }

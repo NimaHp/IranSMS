@@ -262,6 +262,52 @@ namespace IranSms.Tests.SmsIr
         }
 
         [Fact]
+        public async Task GetBalanceAsync_ParsesDecimal()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = "{\"status\":1,\"message\":\"ok\",\"data\":165.3}" };
+            var client = CreateClient(transport);
+
+            var result = await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            result.Credit.Should().Be(165.3m);
+            transport.LastPath.Should().Be("credit");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_ApiError_Throws()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = "{\"status\":0,\"message\":\"err\",\"data\":null}" };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_ParsesArray()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = "{\"status\":1,\"message\":\"ok\",\"data\":[10002155613464,30004505000017]}" };
+            var client = CreateClient(transport);
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().Equal("10002155613464", "30004505000017");
+            transport.LastPath.Should().Be("line");
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_Empty_WhenEmptyArray()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = "{\"status\":1,\"message\":\"ok\",\"data\":[]}" };
+            var client = CreateClient(transport);
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().BeEmpty();
+        }
+
+        [Fact]
         public void Capabilities_AreCorrect()
         {
             var client = CreateClient(new FakeSmsIrTransport());

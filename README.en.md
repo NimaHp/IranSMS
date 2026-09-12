@@ -23,11 +23,11 @@ A lightweight, dependency-free, and provider-agnostic library for sending SMS vi
 | Package | Client | Capabilities | Extra Dependency | Notes |
 |---|---|---|---|---|
 | IranSms.Core | ISmsClient | Base contracts & capability interfaces | — | Zero dependencies |
-| IranSms.Providers.Kavenegar | KavenegarClient | Single · Bulk · OTP · Delivery status | System.Text.Json | Bulk up to 200 recipients |
-| IranSms.Providers.Ghasedak | GhasedakClient | Single · Bulk · OTP · Delivery status | System.Text.Json | Bulk up to 100; max 1000 chars |
-| IranSms.Providers.SmsIr | SmsIrClient | Single · Bulk · OTP · Delivery status | System.Text.Json | Bulk up to 100; numeric senderLine required |
-| IranSms.Providers.Melipayamak | MelipayamakClient | Single · Bulk · OTP · Delivery status | — | senderLine required |
-| IranSms.Providers.Mock | MockSmsClient | Single · Bulk · OTP · Delivery status | — | In-memory with deterministic mock-{n} IDs |
+| IranSms.Providers.Kavenegar | KavenegarClient | Single · Bulk · OTP · Delivery status · Balance · Lines | System.Text.Json | Bulk up to 200 recipients |
+| IranSms.Providers.Ghasedak | GhasedakClient | Single · Bulk · OTP · Delivery status · Balance | System.Text.Json | Bulk up to 100; max 1000 chars |
+| IranSms.Providers.SmsIr | SmsIrClient | Single · Bulk · OTP · Delivery status · Balance · Lines | System.Text.Json | Bulk up to 100; numeric senderLine required |
+| IranSms.Providers.Melipayamak | MelipayamakClient | Single · Bulk · OTP · Delivery status · Balance · Lines | System.Text.Json | senderLine required |
+| IranSms.Providers.Mock | MockSmsClient | Single · Bulk · OTP · Delivery status · Balance · Lines | — | In-memory with deterministic mock-{n} IDs |
 | IranSms.DependencyInjection | AddIranSms | Capability-aware registration | DI.Abstractions | Depends strictly on Core |
 
 ### Architecture
@@ -57,8 +57,8 @@ A lightweight, dependency-free, and provider-agnostic library for sending SMS vi
 | Scheduled send | ScheduledSend | — | 🗓 Roadmap |
 | Message history | MessageHistory | — | 🗓 Roadmap |
 | Receive message | Receive | — | 🗓 Roadmap |
-| Account info | AccountInfo | — | 🗓 Roadmap |
-| Line management | LineManagement | — | 🗓 Roadmap |
+| Account info | AccountInfo | ISmsAccountInfo.GetBalanceAsync | ✅ Implemented |
+| Line management | LineManagement | ISmsAccountInfo.GetSenderLinesAsync | ✅ Implemented |
 | Template management | TemplateManagement | — | 🗓 Roadmap |
 | Flash message | FlashMessage | — | 🗓 Roadmap |
 | Voice message | VoiceMessage | — | 🗓 Roadmap |

@@ -33,6 +33,9 @@ var otp = await client.SendOtpAsync("09121234567", new OtpRequest
 // Delivery status
 var status = await client.GetMessageStatusAsync(
     new MessageIdentifier(result.MessageId, MessageIdentifierType.ProviderMessageId));
+
+// Account info — balance (Credit/Plan/ExpireDate); no sender-line list endpoint
+var balance = await client.GetBalanceAsync();
 ```
 
 For DI, see `IranSms.DependencyInjection`:

@@ -41,35 +41,35 @@
 <tr>
 <td><span dir="ltr">IranSms.Providers.Kavenegar</span></td>
 <td><span dir="ltr">KavenegarClient</span></td>
-<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل</td>
+<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل · موجودی · خطوط</td>
 <td><span dir="ltr">System.Text.Json</span></td>
 <td>ارسال انبوه تا ۲۰۰ گیرنده</td>
 </tr>
 <tr>
 <td><span dir="ltr">IranSms.Providers.Ghasedak</span></td>
 <td><span dir="ltr">GhasedakClient</span></td>
-<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل</td>
+<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل · موجودی</td>
 <td><span dir="ltr">System.Text.Json</span></td>
 <td>ارسال انبوه تا ۱۰۰ گیرنده؛ حداکثر ۱۰۰۰ کاراکتر</td>
 </tr>
 <tr>
 <td><span dir="ltr">IranSms.Providers.SmsIr</span></td>
 <td><span dir="ltr">SmsIrClient</span></td>
-<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل</td>
+<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل · موجودی · خطوط</td>
 <td><span dir="ltr">System.Text.Json</span></td>
 <td>ارسال انبوه تا ۱۰۰ گیرنده؛ الزام عددی بودن <span dir="ltr">senderLine</span></td>
 </tr>
 <tr>
 <td><span dir="ltr">IranSms.Providers.Melipayamak</span></td>
 <td><span dir="ltr">MelipayamakClient</span></td>
-<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل</td>
-<td>—</td>
+<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل · موجودی · خطوط</td>
+<td><span dir="ltr">System.Text.Json</span></td>
 <td>الزامی بودن <span dir="ltr">senderLine</span></td>
 </tr>
 <tr>
 <td><span dir="ltr">IranSms.Providers.Mock</span></td>
 <td><span dir="ltr">MockSmsClient</span></td>
-<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل</td>
+<td>تکی · انبوه · الگویی (<span dir="ltr">OTP</span>) · وضعیت تحویل · موجودی · خطوط</td>
 <td>—</td>
 <td>مبتنی بر حافظه با شناسه معین <span dir="ltr">mock-{n}</span></td>
 </tr>
@@ -118,8 +118,8 @@
 <tr><td>ارسال زمان‌بندی‌شده</td><td><span dir="ltr">ScheduledSend</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>تاریخچه پیام‌ها</td><td><span dir="ltr">MessageHistory</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>دریافت پیام</td><td><span dir="ltr">Receive</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
-<tr><td>اطلاعات حساب</td><td><span dir="ltr">AccountInfo</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
-<tr><td>مدیریت خطوط</td><td><span dir="ltr">LineManagement</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
+<tr><td>اطلاعات حساب</td><td><span dir="ltr">AccountInfo</span></td><td><span dir="ltr">ISmsAccountInfo.GetBalanceAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
+<tr><td>مدیریت خطوط</td><td><span dir="ltr">LineManagement</span></td><td><span dir="ltr">ISmsAccountInfo.GetSenderLinesAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
 <tr><td>مدیریت قالب‌ها</td><td><span dir="ltr">TemplateManagement</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>پیام فلش</td><td><span dir="ltr">FlashMessage</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>پیام صوتی</td><td><span dir="ltr">VoiceMessage</span></td><td>—</td><td>🗓 نقشه راه</td></tr>

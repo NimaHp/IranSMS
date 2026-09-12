@@ -240,6 +240,66 @@ namespace IranSms.Tests.Kavenegar
         }
 
         [Fact]
+        public async Task GetBalanceAsync_ParsesCredit_Type_Expire()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[{\"remaincredit\":1500000,\"expiredate\":13548889,\"type\":\"master\"}]}",
+            };
+            var client = CreateClient(transport);
+
+            var result = await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            result.Credit.Should().Be(1500000m);
+            result.AccountType.Should().Be("master");
+            result.ExpireDate.Should().Be(DateTimeOffset.FromUnixTimeSeconds(13548889));
+            transport.LastMethod.Should().Be("account/info");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_ApiError_Throws()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":418,\"message\":\"Insufficient credit\"},\"entries\":[]}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(418);
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_ReturnsDefaultSender()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[{\"defaultsender\":\"10004346\"}]}",
+            };
+            var client = CreateClient(transport);
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().Equal("10004346");
+            transport.LastMethod.Should().Be("account/config");
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_Empty_WhenMissing()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[]}",
+            };
+            var client = CreateClient(transport);
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().BeEmpty();
+        }
+
+        [Fact]
         public void Capabilities_AreCorrect()
         {
             var client = CreateClient(new FakeKavenegarTransport());

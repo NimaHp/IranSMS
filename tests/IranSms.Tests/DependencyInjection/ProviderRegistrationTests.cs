@@ -22,6 +22,7 @@ namespace IranSms.Tests.DependencyInjection
             provider.GetRequiredService<ISmsBulkSender>().Should().BeSameAs(mock);
             provider.GetRequiredService<ISmsOtpSender>().Should().BeSameAs(mock);
             provider.GetRequiredService<ISmsDeliveryReporter>().Should().BeSameAs(mock);
+            provider.GetRequiredService<ISmsAccountInfo>().Should().BeSameAs(mock);
         }
 
         [Fact]
@@ -34,6 +35,7 @@ namespace IranSms.Tests.DependencyInjection
             provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<ISmsBulkSender>();
             provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<ISmsOtpSender>();
             provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<ISmsDeliveryReporter>();
+            provider.GetRequiredService<ISmsClient>().Should().BeAssignableTo<ISmsAccountInfo>();
         }
 
         [Fact]
@@ -48,6 +50,7 @@ namespace IranSms.Tests.DependencyInjection
             provider.GetRequiredService<ISmsBulkSender>().Should().BeSameAs(kavenegar);
             provider.GetRequiredService<ISmsOtpSender>().Should().BeSameAs(kavenegar);
             provider.GetRequiredService<ISmsDeliveryReporter>().Should().BeSameAs(kavenegar);
+            provider.GetRequiredService<ISmsAccountInfo>().Should().BeSameAs(kavenegar);
         }
 
         [Fact]
@@ -68,6 +71,8 @@ namespace IranSms.Tests.DependencyInjection
             provider.Invoking(p => p.GetRequiredService<ISmsOtpSender>())
                 .Should().Throw<InvalidOperationException>();
             provider.Invoking(p => p.GetRequiredService<ISmsDeliveryReporter>())
+                .Should().Throw<InvalidOperationException>();
+            provider.Invoking(p => p.GetRequiredService<ISmsAccountInfo>())
                 .Should().Throw<InvalidOperationException>();
         }
 

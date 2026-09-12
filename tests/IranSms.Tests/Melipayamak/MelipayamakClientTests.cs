@@ -200,6 +200,41 @@ namespace IranSms.Tests.Melipayamak
         }
 
         [Fact]
+        public async Task GetBalanceAsync_ParsesEnvelope()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"12345.5\",\"RetStatus\":1,\"StrRetStatus\":\"Ok\"}" };
+            var client = CreateClient(transport);
+
+            var result = await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            result.Credit.Should().Be(12345.5m);
+            transport.LastAction.Should().Be("GetCredit");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_ApiError_Throws()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"\",\"RetStatus\":0,\"StrRetStatus\":\"Wrong username\"}" };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task GetSenderLinesAsync_ParsesArrayString()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"[\\\"50001234\\\",\\\"50005678\\\"]\",\"RetStatus\":1,\"StrRetStatus\":\"Ok\"}" };
+            var client = CreateClient(transport);
+
+            var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
+
+            lines.Should().Equal("50001234", "50005678");
+            transport.LastAction.Should().Be("GetUserNumbers");
+        }
+
+        [Fact]
         public void Capabilities_AreCorrect()
         {
             var client = CreateClient(new FakeMelipayamakTransport());
