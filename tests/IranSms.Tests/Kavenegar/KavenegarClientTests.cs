@@ -300,6 +300,48 @@ namespace IranSms.Tests.Kavenegar
         }
 
         [Fact]
+        public async Task SendAsync_Throws_WhenEntriesAreEmpty()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[]}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendAsync("09120000000", "hi", null, TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_Throws_WhenEntriesAreEmpty()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[]}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendBulkAsync(TwoRecipients, "hi", null, TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_Throws_WhenCreditIsMissing()
+        {
+            var transport = new FakeKavenegarTransport
+            {
+                ResponseBody = "{\"return\":{\"status\":200,\"message\":\"OK\"},\"entries\":[{\"type\":\"master\"}]}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
+        }
+
+        [Fact]
         public void Capabilities_AreCorrect()
         {
             var client = CreateClient(new FakeKavenegarTransport());

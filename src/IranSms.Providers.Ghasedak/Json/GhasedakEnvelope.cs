@@ -25,22 +25,32 @@ namespace IranSms.Providers.Ghasedak.Json
         /// <summary>Deserializes the envelope from a JSON body. Returns null on malformed JSON (caller wraps as IranSmsException).</summary>
         public static GhasedakEnvelope? Deserialize(string json)
         {
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+
             try
             {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                    return null;
+                if (!root.TryGetProperty("IsSuccess", out var success) ||
+                    (success.ValueKind != JsonValueKind.True && success.ValueKind != JsonValueKind.False))
+                    return null;
+                if (!TryReadStatusCode(root, out var statusCode))
+                    return null;
+                if (root.TryGetProperty("Message", out var message) &&
+                    message.ValueKind != JsonValueKind.String && message.ValueKind != JsonValueKind.Null)
+                    return null;
+
                 var env = new GhasedakEnvelope
                 {
-                    IsSuccess = root.TryGetProperty("IsSuccess", out var s) && s.ValueKind == JsonValueKind.True,
-                    StatusCode = ReadStatusCode(root),
-                    Message = root.TryGetProperty("Message", out var m) && m.ValueKind == JsonValueKind.String
-                        ? m.GetString()
-                        : null,
+                    IsSuccess = success.GetBoolean(),
+                    StatusCode = statusCode,
+                    Message = message.ValueKind == JsonValueKind.String ? message.GetString() : null,
                 };
                 if (root.TryGetProperty("Data", out var data) && data.ValueKind != JsonValueKind.Null)
-                {
                     env.Data = data.Clone();
-                }
 
                 return env;
             }
@@ -50,17 +60,18 @@ namespace IranSms.Providers.Ghasedak.Json
             }
         }
 
-        private static int ReadStatusCode(JsonElement root)
+        private static bool TryReadStatusCode(JsonElement root, out int statusCode)
         {
-            if (root.TryGetProperty("StatusCode", out var sc))
+            if (root.TryGetProperty("StatusCode", out var value))
             {
-                if (sc.ValueKind == JsonValueKind.Number && sc.TryGetInt32(out var i))
-                    return i;
-                if (sc.ValueKind == JsonValueKind.String && int.TryParse(sc.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-                    return parsed;
+                if (value.ValueKind == JsonValueKind.Number)
+                    return value.TryGetInt32(out statusCode);
+                if (value.ValueKind == JsonValueKind.String)
+                    return int.TryParse(value.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out statusCode);
             }
 
-            return 0;
+            statusCode = 0;
+            return false;
         }
     }
 }

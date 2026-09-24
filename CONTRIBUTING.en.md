@@ -28,7 +28,7 @@ Execute the unit test suite:
 dotnet build IranSMS.slnx -c Release
 ```
 
-* All tests must pass cleanly (150 tests with `xunit v3` + `FluentAssertions`).
+* All tests must pass cleanly (222 tests with `xunit v3` + `FluentAssertions`).
 * The `Mock` provider with deterministic `mock-{n}` identifiers is available for local testing.
 
 ## Coding Conventions

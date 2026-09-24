@@ -18,26 +18,96 @@ namespace IranSms.Providers.Melipayamak
         /// <exception cref="IranSmsException">The body is an error code.</exception>
         public static string ParseRecId(string body)
         {
-            var trimmed = body.Trim();
-            if (long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
+            var envelope = ParseRestEnvelope(body);
+            if (envelope is not null)
             {
-                if (code > 0)
-                    return code.ToString(CultureInfo.InvariantCulture);
+                if (TryParseInteger(envelope.Value, out var code) && IsErrorCode(code))
+                    ThrowApiError(body, envelope, code);
+                if (!envelope.HasRetStatus || envelope.RetStatus != 1)
+                    ThrowApiError(body, envelope);
 
-                throw new IranSmsException($"Melipayamak API error ({code}): {DescribeError(code)}")
+                if (string.IsNullOrWhiteSpace(envelope.Value))
+                    throw UnrecognizedResponse(body);
+
+                if (long.TryParse(envelope.Value!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out code))
                 {
-                    ProviderName = "Melipayamak",
-                    ProviderStatusCode = (int)code,
-                    RawResponseBody = body,
-                };
+                    if (code <= 0)
+                        ThrowApiError(body, envelope, code);
+                    return code.ToString(CultureInfo.InvariantCulture);
+                }
+
+                throw UnrecognizedResponse(body);
             }
 
-            throw new IranSmsException($"Melipayamak returned an unrecognized response: {Truncate(trimmed)}")
+            if (long.TryParse(body.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var plainCode))
+            {
+                if (plainCode <= 0 || IsErrorCode(plainCode))
+                    ThrowPlainError(body, plainCode);
+                return plainCode.ToString(CultureInfo.InvariantCulture);
+            }
+
+            throw UnrecognizedResponse(body);
+        }
+
+        internal static bool TryParseInteger(string? value, out long code)
+            => long.TryParse(value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out code);
+
+        internal static bool IsErrorCode(long code)
+        {
+            switch (code)
+            {
+                case -111:
+                case -110:
+                case -109:
+                case -108:
+                case 0:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                case 9:
+                case 10:
+                case 11:
+                case 12:
+                case 14:
+                case 15:
+                case 16:
+                case 17:
+                case 18:
+                case 35:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        internal static void ThrowApiError(string body, RestEnvelope envelope, long? valueCode = null)
+        {
+            var code = valueCode ?? envelope.RetStatus;
+            throw new IranSmsException($"Melipayamak API error ({code}).")
+            {
+                ProviderName = "Melipayamak",
+                ProviderStatusCode = (int)code,
+                RawResponseBody = body,
+            };
+        }
+
+        internal static void ThrowPlainError(string body, long code)
+            => throw new IranSmsException($"Melipayamak API error ({code}).")
+            {
+                ProviderName = "Melipayamak",
+                ProviderStatusCode = (int)code,
+                RawResponseBody = body,
+            };
+
+        private static IranSmsException UnrecognizedResponse(string body)
+            => new IranSmsException("Melipayamak returned an unrecognized response.")
             {
                 ProviderName = "Melipayamak",
                 RawResponseBody = body,
             };
-        }
 
         /// <summary>Describes a documented Melipayamak error code.</summary>
         public static string DescribeError(long code)
@@ -102,7 +172,8 @@ namespace IranSms.Providers.Melipayamak
             if (string.IsNullOrWhiteSpace(status))
                 return MessageDeliveryState.Unknown;
 
-            if (!long.TryParse(status!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
+            status = NormalizeStatus(status!);
+            if (!long.TryParse(status, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
                 return MessageDeliveryState.Unknown;
 
             switch (code)
@@ -131,16 +202,39 @@ namespace IranSms.Providers.Melipayamak
             }
         }
 
-        private static string Truncate(string s, int max = 500)
-            => s.Length <= max ? s : s.Substring(0, max);
+        private static string NormalizeStatus(string status)
+        {
+            var value = status.Trim();
+            if (!value.StartsWith("[", StringComparison.Ordinal))
+                return value;
 
-        internal static string TruncateForLog(string s, int max = 500)
-            => Truncate(s, max);
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(value);
+                if (document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array ||
+                    document.RootElement.GetArrayLength() == 0)
+                    return value;
+
+                var first = document.RootElement[0];
+                return first.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.String => first.GetString() ?? value,
+                    System.Text.Json.JsonValueKind.Number => first.GetRawText(),
+                    _ => value,
+                };
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return value;
+            }
+        }
 
         internal sealed class RestEnvelope
         {
             public string? Value { get; set; }
+            public bool HasValue { get; set; }
             public int RetStatus { get; set; }
+            public bool HasRetStatus { get; set; }
             public string? StrRetStatus { get; set; }
         }
 
@@ -158,16 +252,23 @@ namespace IranSms.Providers.Melipayamak
                 var env = new RestEnvelope();
                 if (root.TryGetProperty("Value", out var v))
                 {
+                    env.HasValue = true;
                     if (v.ValueKind == System.Text.Json.JsonValueKind.String)
                         env.Value = v.GetString();
                     else if (v.ValueKind != System.Text.Json.JsonValueKind.Null)
-                        env.Value = v.GetRawText().Trim('"');
+                        env.Value = v.GetRawText();
                 }
 
                 if (root.TryGetProperty("RetStatus", out var rs) && rs.ValueKind == System.Text.Json.JsonValueKind.Number && rs.TryGetInt32(out var rsi))
+                {
                     env.RetStatus = rsi;
+                    env.HasRetStatus = true;
+                }
                 else if (root.TryGetProperty("RetStatus", out var rs2) && rs2.ValueKind == System.Text.Json.JsonValueKind.String && int.TryParse(rs2.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var rsi2))
+                {
                     env.RetStatus = rsi2;
+                    env.HasRetStatus = true;
+                }
                 if (root.TryGetProperty("StrRetStatus", out var srs) && srs.ValueKind == System.Text.Json.JsonValueKind.String)
                     env.StrRetStatus = srs.GetString();
                 return env;

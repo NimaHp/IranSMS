@@ -12,21 +12,23 @@
 
 ## API Keys
 
-Never hard-code keys. All three samples fall back to `Mock` when env vars are absent:
+Never hard-code keys. The samples fall back to `Mock` when provider env vars are absent; `AspNetCore` also requires a sample API key for its endpoints:
 
 ```bash
 export KAVENEGAR_API_KEY=...
 export GHASEDAK_API_KEY=...
 export SMSIR_API_KEY=...
 export MELIPAYAMAK_USERNAME=... MELIPAYAMAK_PASSWORD=...
+export IRANSMS_SAMPLE_API_KEY=...
 ```
 
 For `AspNetCore` you can also use `UserSecrets` or `appsettings.json`:
 
 ```bash
-dotnet user-secrets --project samples/AspNetCore set "Kavenegar:ApiKey" "YOUR_KEY"
+dotnet user-secrets --project samples/AspNetCore set "Sample:ApiKey" "YOUR_SAMPLE_KEY"
+# /sms/* and /account/* also require the X-Sample-Api-Key header.
 # or in appsettings.Development.json:
-# { "Kavenegar": { "ApiKey": "YOUR_KEY" } }
+# { "Sample": { "ApiKey": "YOUR_SAMPLE_KEY" } }
 ```
 
 ## HttpClient management

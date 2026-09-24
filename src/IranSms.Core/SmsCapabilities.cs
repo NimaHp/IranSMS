@@ -39,8 +39,11 @@ namespace IranSms
         /// <summary>Account info / credit queries.</summary>
         AccountInfo = 1 << 8,
 
-        /// <summary>Sender line management (list/block/unblock).</summary>
-        LineManagement = 1 << 9,
+        /// <summary>Sender line enumeration.</summary>
+        SenderLines = 1 << 9,
+
+        /// <summary>Compatibility alias for sender line enumeration.</summary>
+        LineManagement = SenderLines,
 
         /// <summary>Template CRUD (create/read/update/delete OTP patterns).</summary>
         TemplateManagement = 1 << 10,

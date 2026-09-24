@@ -1,6 +1,6 @@
 ﻿# IranSMS
 
-**یکپارچه‌سازی سامانه‌های پیامکی ایران در `.NET`** — نسخه `0.1.0-beta.1`
+**یکپارچه‌سازی سامانه‌های پیامکی ایران در `.NET`** — نسخه `0.2.0-beta.1`
 
 [![Build](https://github.com/NimaHp/IranSMS/actions/workflows/build.yml/badge.svg)](https://github.com/NimaHp/IranSMS/actions)
 [![License](https://img.shields.io/github/license/NimaHp/IranSMS)](LICENSE)
@@ -119,7 +119,7 @@
 <tr><td>تاریخچه پیام‌ها</td><td><span dir="ltr">MessageHistory</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>دریافت پیام</td><td><span dir="ltr">Receive</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>اطلاعات حساب</td><td><span dir="ltr">AccountInfo</span></td><td><span dir="ltr">ISmsAccountInfo.GetBalanceAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
-<tr><td>مدیریت خطوط</td><td><span dir="ltr">LineManagement</span></td><td><span dir="ltr">ISmsAccountInfo.GetSenderLinesAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
+<tr><td>فهرست خطوط</td><td><span dir="ltr">SenderLines</span></td><td><span dir="ltr">ISmsAccountInfo.GetSenderLinesAsync</span></td><td>✅ پیاده‌سازی‌شده</td></tr>
 <tr><td>مدیریت قالب‌ها</td><td><span dir="ltr">TemplateManagement</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>پیام فلش</td><td><span dir="ltr">FlashMessage</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
 <tr><td>پیام صوتی</td><td><span dir="ltr">VoiceMessage</span></td><td>—</td><td>🗓 نقشه راه</td></tr>
@@ -143,7 +143,7 @@ if (client is ISmsOtpSender otp) { ... }
 * ✅ **مدیریت مستقیم کلاینت:** ساخت و نگهداری چرخه عمر <span dir="ltr">HttpClient</span> و کلیدهای دسترسی در اختیار مصرف‌کننده است.
 * ✅ **ثبت هوشمند مبتنی بر قابلیت:** در تزریق وابستگی، فقط اینترفیس‌هایی ثبت می‌شوند که توسط کلاینت مربوطه پیاده‌سازی شده باشند.
 * ✅ **قابلیت تست‌پذیری بالا:** ارائه کلاینت <span dir="ltr">Mock</span> با شناسه قطعی <span dir="ltr">mock-{n}</span> جهت تست‌های محلی.
-* ✅ **تایماوت HTTP:** چرخه عمر <span dir="ltr">HttpClient</span> در اختیار مصرفکننده است؛ اگر <span dir="ltr">HttpClient</span> تزریق نشود، تایماوت پیشفرض (۱۰۰ ثانیه) اعمال میشود — برای تنظیم دقیق، <span dir="ltr">HttpClient</span> پیکربندیشده خودتان را به سازنده کلاینت بدهید.
+* ✅ **تایماوت HTTP:** چرخه عمر <span dir="ltr">HttpClient</span> در اختیار مصرفکننده است؛ client داخلی با timeout سی ثانیه و بدون redirect خودکار ساخته می‌شود. برای تنظیم دقیق، <span dir="ltr">HttpClient</span> پیکربندی‌شده خودتان را به سازنده کلاینت بدهید.
 * ✅ **پشتیبانی از <span dir="ltr">netstandard2.0</span>:** قابل استفاده در تمام نسخه‌های <span dir="ltr">.NET</span> (از <span dir="ltr">.NET Framework</span> تا <span dir="ltr">.NET 10</span>).
 * ✅ **مدیریت خطای دقیق:** عدم ارائه مقادیر ساختگی در صورت نبود <span dir="ltr">MessageId</span> و صدور صریح استثنا.
 
@@ -245,7 +245,7 @@ catch (HttpRequestException)
 </thead>
 <tbody>
 <tr><td><span dir="ltr">samples/Basic</span></td><td>برنامه کنسول بدون <span dir="ltr">DI</span> جهت نمایش تمامی قابلیت‌ها با <span dir="ltr">Mock</span></td><td><span dir="ltr">dotnet run --project samples/Basic</span></td></tr>
-<tr><td><span dir="ltr">samples/AspNetCore</span></td><td>پروژه <span dir="ltr">Minimal API</span> به همراه <span dir="ltr">AddIranSms</span></td><td><span dir="ltr">dotnet run --project samples/AspNetCore</span></td></tr>
+<tr><td><span dir="ltr">samples/AspNetCore</span></td><td>پروژه <span dir="ltr">Minimal API</span> به همراه <span dir="ltr">AddIranSms</span>، احراز هویت sample و rate limit</td><td><span dir="ltr">dotnet run --project samples/AspNetCore</span> با <span dir="ltr">X-Sample-Api-Key</span></td></tr>
 <tr><td><span dir="ltr">samples/MultiProvider</span></td><td>ثبت ۵ ارائه‌دهنده و مسیریابی پویا بر اساس قابلیت‌ها</td><td><span dir="ltr">dotnet run --project samples/MultiProvider</span></td></tr>
 </tbody>
 </table>
@@ -257,6 +257,7 @@ export KAVENEGAR_API_KEY=...
 export GHASEDAK_API_KEY=...
 export SMSIR_API_KEY=...
 export MELIPAYAMAK_USERNAME=... MELIPAYAMAK_PASSWORD=...
+export IRANSMS_SAMPLE_API_KEY=...
 ```
 
 ## وضعیت پکیج‌ها

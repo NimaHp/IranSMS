@@ -43,7 +43,8 @@ namespace IranSms.Providers.Kavenegar.Json
         /// <summary>Gets a string property value, or null when absent/null.</summary>
         public string? GetNullableString(string name)
         {
-            if (!_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
+            if (_element.ValueKind != JsonValueKind.Object ||
+                !_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
                 return null;
             if (prop.ValueKind == JsonValueKind.String)
                 return prop.GetString();
@@ -57,7 +58,8 @@ namespace IranSms.Providers.Kavenegar.Json
         /// <summary>Gets a decimal property, or null when absent/invalid.</summary>
         public decimal? GetNullableDecimal(string name)
         {
-            if (!_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
+            if (_element.ValueKind != JsonValueKind.Object ||
+                !_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
                 return null;
             if (prop.ValueKind == JsonValueKind.Number && prop.TryGetDecimal(out var d))
                 return d;
@@ -73,20 +75,35 @@ namespace IranSms.Providers.Kavenegar.Json
         /// <summary>Gets a Unix-seconds DateTimeOffset, or null when absent/invalid.</summary>
         public DateTimeOffset? GetNullableDateTimeOffset(string name, bool isUnix)
         {
-            if (!_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
+            if (_element.ValueKind != JsonValueKind.Object ||
+                !_element.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
                 return null;
 
             if (isUnix)
             {
                 if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt64(out var seconds))
                 {
-                    return DateTimeOffset.FromUnixTimeSeconds(seconds);
+                    try
+                    {
+                        return DateTimeOffset.FromUnixTimeSeconds(seconds);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        return null;
+                    }
                 }
 
                 if (prop.ValueKind == JsonValueKind.String &&
                     long.TryParse(prop.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
                 {
-                    return DateTimeOffset.FromUnixTimeSeconds(parsed);
+                    try
+                    {
+                        return DateTimeOffset.FromUnixTimeSeconds(parsed);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        return null;
+                    }
                 }
             }
             else if (prop.ValueKind == JsonValueKind.String &&

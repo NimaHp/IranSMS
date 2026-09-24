@@ -51,7 +51,7 @@ namespace IranSms.Providers.SmsIr.Json
 
         /// <summary>Per-recipient message ids; null/0 values mark blacklisted or invalid numbers (messageIds).</summary>
         [JsonPropertyName("messageIds")]
-        public long[]? MessageIds { get; set; }
+        public long?[]? MessageIds { get; set; }
 
         /// <summary>Credit consumed by the send set (cost).</summary>
         [JsonPropertyName("cost")]
@@ -161,6 +161,9 @@ namespace IranSms.Providers.SmsIr.Json
             {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                    return null;
+
                 var raw = new RawEnvelope();
                 if (root.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.Number && st.TryGetInt32(out var s))
                     raw.Status = s;
@@ -176,13 +179,13 @@ namespace IranSms.Providers.SmsIr.Json
             }
         }
 
-        internal static decimal ExtractDecimal(JsonElement el)
+        internal static decimal? ExtractDecimal(JsonElement el)
         {
             if (el.ValueKind == JsonValueKind.Number && el.TryGetDecimal(out var d))
                 return d;
             if (el.ValueKind == JsonValueKind.String && decimal.TryParse(el.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
                 return p;
-            return 0m;
+            return null;
         }
 
         /// <summary>Serializes a request payload to JSON (camelCase keys).</summary>
@@ -198,6 +201,10 @@ namespace IranSms.Providers.SmsIr.Json
 
             try
             {
+                using var document = JsonDocument.Parse(json);
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                    return null;
+
                 return JsonSerializer.Deserialize<SmsIrResponse<T>>(json, Options);
             }
             catch (JsonException)

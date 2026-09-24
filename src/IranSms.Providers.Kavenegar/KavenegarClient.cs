@@ -52,7 +52,7 @@ namespace IranSms.Providers.Kavenegar
             | SmsCapabilities.OtpSend
             | SmsCapabilities.DeliveryStatus
             | SmsCapabilities.AccountInfo
-            | SmsCapabilities.LineManagement;
+            | SmsCapabilities.SenderLines;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -68,13 +68,14 @@ namespace IranSms.Providers.Kavenegar
 
             var parameters = new Dictionary<string, string>
             {
-                ["receptor"] = recipient,
+                ["receptor"] = recipient.Trim(),
                 ["message"] = message,
             };
             AddOptional(parameters, "sender", senderLine);
 
             var entry = await SendCoreAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
-            return new SmsSendResult(entry.GetString("messageid"))
+            var messageId = RequireMessageId(entry, "Send");
+            return new SmsSendResult(messageId)
             {
                 Cost = entry.GetNullableDecimal("cost"),
             };
@@ -92,24 +93,38 @@ namespace IranSms.Providers.Kavenegar
             if (message is null)
                 throw new ArgumentNullException(nameof(message));
 
-            var list = recipients as IReadOnlyList<string> ?? recipients.ToList();
+            var list = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxRecipients);
             if (list.Count == 0)
                 throw new ArgumentException("At least one recipient is required.", nameof(recipients));
             if (list.Count > MaxRecipients)
                 throw new ArgumentException($"Kavenegar accepts at most {MaxRecipients} recipients per call.", nameof(recipients));
 
+            var normalizedRecipients = new string[list.Count];
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(list[i]))
+                    throw new ArgumentException("Recipients cannot contain null or whitespace values.", nameof(recipients));
+                normalizedRecipients[i] = list[i].Trim();
+            }
+
             var parameters = new Dictionary<string, string>
             {
-                ["receptor"] = string.Join(",", list),
+                ["receptor"] = string.Join(",", normalizedRecipients),
                 ["message"] = message,
             };
             AddOptional(parameters, "sender", senderLine);
 
             var entries = await SendCoreMultiAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
 
+            if (entries.Count == 0)
+                throw new IranSmsException("Kavenegar returned no message entries for SendBulk.")
+                {
+                    ProviderName = ProviderName,
+                };
+
             var ids = new string[entries.Count];
             for (var i = 0; i < entries.Count; i++)
-                ids[i] = entries[i].GetString("messageid");
+                ids[i] = RequireMessageId(entries[i], "SendBulk");
             return new SmsSendResult(ids[0])
             {
                 RecipientIds = ids,
@@ -135,7 +150,7 @@ namespace IranSms.Providers.Kavenegar
 
             var parameters = new Dictionary<string, string>
             {
-                ["receptor"] = recipient,
+                ["receptor"] = recipient.Trim(),
                 ["template"] = templateName!,
             };
 
@@ -167,7 +182,7 @@ namespace IranSms.Providers.Kavenegar
                 AddOptional(parameters, "sender", request.SenderLine);
 
             var entry = await SendCoreAsync(VerifyPath, parameters, cancellationToken).ConfigureAwait(false);
-            return new OtpSendResult(entry.GetString("messageid"))
+            return new OtpSendResult(RequireMessageId(entry, "Lookup"))
             {
                 Cost = entry.GetNullableDecimal("cost"),
             };
@@ -183,7 +198,12 @@ namespace IranSms.Providers.Kavenegar
             MessageIdentifier message,
             CancellationToken cancellationToken = default)
         {
+            if (message.Value is null)
+                throw new ArgumentNullException(nameof(message));
+
             var isLocal = message.Type == MessageIdentifierType.ClientReferenceId;
+            if (message.Type != MessageIdentifierType.ProviderMessageId && !isLocal)
+                throw new ArgumentOutOfRangeException(nameof(message), message.Type, "Unsupported message identifier type.");
             var method = isLocal ? StatusLocalMessageIdPath : StatusPath;
             var paramName = isLocal ? "localid" : "messageid";
 
@@ -225,7 +245,11 @@ namespace IranSms.Providers.Kavenegar
 
             var creditText = entry.GetString("remaincredit");
             if (!decimal.TryParse(creditText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var credit))
-                credit = entry.GetNullableDecimal("remaincredit") ?? 0m;
+                throw new IranSmsException("Kavenegar did not return a valid account credit.")
+                {
+                    ProviderName = ProviderName,
+                    RawResponseBody = body,
+                };
 
             return new AccountBalanceResult(credit)
             {
@@ -270,7 +294,7 @@ namespace IranSms.Providers.Kavenegar
                     RawResponseBody = body,
                 };
             if (envelope.Return.Status != 200)
-                throw new IranSmsException($"Kavenegar API error ({envelope.Return.Status}): {envelope.Return.Message}")
+                throw new IranSmsException($"Kavenegar API error ({envelope.Return.Status}).")
                 {
                     ProviderName = ProviderName,
                     ProviderStatusCode = envelope.Return.Status,
@@ -285,6 +309,11 @@ namespace IranSms.Providers.Kavenegar
             CancellationToken cancellationToken)
         {
             var entries = await SendCoreMultiAsync(method, parameters, cancellationToken).ConfigureAwait(false);
+            if (entries.Count == 0)
+                throw new IranSmsException($"Kavenegar returned no message entries for {method}.")
+                {
+                    ProviderName = ProviderName,
+                };
             return entries[0];
         }
 
@@ -321,7 +350,7 @@ namespace IranSms.Providers.Kavenegar
             if (envelope.Return.Status != 200)
             {
                 throw new IranSmsException(
-                    $"Kavenegar API error ({envelope.Return.Status}): {envelope.Return.Message}")
+                    $"Kavenegar API error ({envelope.Return.Status}).")
                 {
                     ProviderName = ProviderName,
                     ProviderStatusCode = envelope.Return.Status,
@@ -330,6 +359,29 @@ namespace IranSms.Providers.Kavenegar
             }
 
             return envelope.Entries ?? new List<KavenegarEntry>();
+        }
+
+        private static List<string> MaterializeRecipients(IEnumerable<string> recipients, int max)
+        {
+            var list = new List<string>();
+            foreach (var recipient in recipients)
+            {
+                list.Add(recipient);
+                if (list.Count > max)
+                    throw new ArgumentException($"Kavenegar accepts at most {max} recipients per call.", nameof(recipients));
+            }
+            return list;
+        }
+
+        private static string RequireMessageId(KavenegarEntry entry, string operation)
+        {
+            var messageId = entry.GetString("messageid");
+            if (string.IsNullOrWhiteSpace(messageId))
+                throw new IranSmsException($"Kavenegar returned no message id for {operation}.")
+                {
+                    ProviderName = "Kavenegar",
+                };
+            return messageId;
         }
 
         private static void AddOptional(Dictionary<string, string> parameters, string key, string? value)

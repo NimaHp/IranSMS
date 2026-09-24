@@ -12,6 +12,7 @@ namespace IranSms.Providers.Mock
     public sealed class MockSmsClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo
     {
         private const int MaxBulkRecipients = 200;
+        private const int MaxStoredMessages = 10000;
 
         private readonly object _lock = new object();
         private readonly List<MockMessage> _messages = new List<MockMessage>();
@@ -48,7 +49,7 @@ namespace IranSms.Providers.Mock
 
         /// <inheritdoc />
         public SmsCapabilities Capabilities =>
-            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement;
+            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.SenderLines;
 
         /// <summary>
         /// Gets a snapshot of all messages recorded so far (newest last).
@@ -102,6 +103,7 @@ namespace IranSms.Providers.Mock
 
             lock (_lock)
             {
+                EnsureCapacity();
                 _messages.Add(entry);
             }
 
@@ -127,10 +129,16 @@ namespace IranSms.Providers.Mock
                 throw new ArgumentException("At least one recipient is required.", nameof(recipients));
             if (list.Count > MaxBulkRecipients)
                 throw new ArgumentException($"Mock bulk send supports at most {MaxBulkRecipients} recipients (parity with Kavenegar).", nameof(recipients));
+            foreach (var recipient in list)
+            {
+                if (string.IsNullOrWhiteSpace(recipient))
+                    throw new ArgumentException("Recipients cannot contain null or whitespace values.", nameof(recipients));
+            }
 
             var ids = new string[list.Count];
             lock (_lock)
             {
+                EnsureCapacity(list.Count);
                 for (var i = 0; i < list.Count; i++)
                 {
                     ids[i] = NextIdLocked();
@@ -179,6 +187,7 @@ namespace IranSms.Providers.Mock
 
             lock (_lock)
             {
+                EnsureCapacity();
                 _messages.Add(entry);
             }
 
@@ -241,6 +250,12 @@ namespace IranSms.Providers.Mock
             {
                 return Task.FromResult<IReadOnlyList<string>>(_senderLines.ToArray());
             }
+        }
+
+        private void EnsureCapacity(int count = 1)
+        {
+            if (_messages.Count + count > MaxStoredMessages)
+                throw new InvalidOperationException("Mock message storage limit reached.");
         }
 
         private string NextId()

@@ -4,8 +4,8 @@ namespace IranSms
     /// <summary>
     /// Optional capability: account credit/balance and sender-line queries.
     /// Advertised by providers with <see cref="SmsCapabilities.AccountInfo"/>.
-    /// All providers expose credit; sender lines are available on every provider
-    /// but may be a single default line (Kavenegar/Ghasedak) or a full list (SmsIr).
+    /// Providers may return a single default line, a full list, or an empty list
+    /// when their API does not expose sender-line enumeration.
     /// </summary>
     public interface ISmsAccountInfo
     {

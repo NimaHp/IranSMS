@@ -1,4 +1,7 @@
-﻿using IranSms;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Threading.RateLimiting;
+using IranSms;
 using IranSms.DependencyInjection;
 using IranSms.Providers.Kavenegar;
 using IranSms.Providers.Mock;
@@ -9,6 +12,26 @@ using IranSms.Providers.Mock;
 // API key).
 
 var builder = WebApplication.CreateBuilder(args);
+
+var sampleApiKey = builder.Configuration["Sample:ApiKey"]
+    ?? Environment.GetEnvironmentVariable("IRANSMS_SAMPLE_API_KEY");
+if (string.IsNullOrWhiteSpace(sampleApiKey))
+    throw new InvalidOperationException("Set Sample:ApiKey or IRANSMS_SAMPLE_API_KEY before starting the sample.");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
 
 var kavenegarKey = builder.Configuration["Kavenegar:ApiKey"]
     ?? Environment.GetEnvironmentVariable("KAVENEGAR_API_KEY");
@@ -37,6 +60,37 @@ else
 }
 
 var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { error = "An internal error occurred." });
+    }));
+    app.UseHsts();
+}
+app.UseRateLimiter();
+app.UseHttpsRedirection();
+app.Use(async (context, next) =>
+{
+    var isProtectedEndpoint = context.Request.Path.StartsWithSegments("/sms") ||
+        context.Request.Path.StartsWithSegments("/account");
+    if (isProtectedEndpoint)
+    {
+        var suppliedKey = context.Request.Headers["X-Sample-Api-Key"].ToString();
+        var expectedBytes = Encoding.UTF8.GetBytes(sampleApiKey!);
+        var suppliedBytes = Encoding.UTF8.GetBytes(suppliedKey);
+        if (expectedBytes.Length != suppliedBytes.Length ||
+            !CryptographicOperations.FixedTimeEquals(expectedBytes, suppliedBytes))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+    }
+
+    await next();
+});
 
 app.MapPost("/sms/send", async (
     SendSmsRequest request,

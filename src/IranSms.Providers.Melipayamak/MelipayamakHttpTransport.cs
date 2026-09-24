@@ -1,4 +1,6 @@
-﻿namespace IranSms.Providers.Melipayamak
+﻿using System.Text;
+
+namespace IranSms.Providers.Melipayamak
 {
     /// <summary>
     /// Real Melipayamak transport backed by <see cref="HttpClient"/>.
@@ -7,6 +9,7 @@
     internal sealed class MelipayamakHttpTransport : IMelipayamakTransport, IDisposable
     {
         private const string BaseUrl = "https://rest.payamak-panel.com/api/SendSMS";
+        private const long MaxResponseBytes = 1_048_576;
         private readonly HttpClient _http;
         private readonly bool _ownsHttp;
 
@@ -15,7 +18,13 @@
         public MelipayamakHttpTransport(HttpClient? httpClient = null)
         {
             _ownsHttp = httpClient is null;
-            _http = httpClient ?? new HttpClient();
+            _http = httpClient ?? new HttpClient(new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+            })
+            {
+                Timeout = TimeSpan.FromSeconds(30),
+            };
         }
 
         public void Dispose()
@@ -35,11 +44,16 @@
             {
                 using (var response = await _http.PostAsync(url, content, cancellationToken).ConfigureAwait(false))
                 {
-                    var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (response.Content.Headers.ContentLength > MaxResponseBytes)
+                        throw new IranSmsException("Melipayamak response exceeded the maximum allowed size.")
+                        {
+                            ProviderName = "Melipayamak",
+                        };
+                    var body = await ReadBodyAsync(response.Content, "Melipayamak").ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
                     {
                         throw new IranSmsException(
-                            $"Melipayamak HTTP error ({(int)response.StatusCode}): {Truncate(body)}")
+                            $"Melipayamak HTTP error ({(int)response.StatusCode}).")
                         {
                             ProviderName = "Melipayamak",
                             ProviderStatusCode = (int)response.StatusCode,
@@ -52,7 +66,28 @@
             }
         }
 
-        private static string Truncate(string s, int max = 500)
-            => s.Length <= max ? s : s.Substring(0, max);
+        private static async Task<string> ReadBodyAsync(HttpContent content, string providerName)
+        {
+            if (content.Headers.ContentLength > MaxResponseBytes)
+                throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
+                {
+                    ProviderName = providerName,
+                };
+
+            using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var memory = new MemoryStream();
+            var buffer = new byte[8192];
+            int read;
+            while ((read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+            {
+                if (memory.Length + read > MaxResponseBytes)
+                    throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
+                    {
+                        ProviderName = providerName,
+                    };
+                await memory.WriteAsync(buffer, 0, read).ConfigureAwait(false);
+            }
+            return Encoding.UTF8.GetString(memory.ToArray());
+        }
     }
 }

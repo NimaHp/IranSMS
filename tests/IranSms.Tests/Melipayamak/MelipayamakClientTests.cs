@@ -10,6 +10,7 @@ namespace IranSms.Tests.Melipayamak
         private const string Password = "pass";
         private static readonly string[] TwoRecipients = { "09120000000", "09120000001" };
         private static readonly string[] EmptyRecipients = Array.Empty<string>();
+        private static readonly string[] InvalidRecipients = { "09120000000", " " };
 
         private static MelipayamakClient CreateClient(FakeMelipayamakTransport transport)
             => new MelipayamakClient(transport, Username, Password);
@@ -75,7 +76,7 @@ namespace IranSms.Tests.Melipayamak
             Func<Task> act = async () => await client.SendAsync("09120000000", "hi", "5000", TestContext.Current.CancellationToken);
             var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
             ex.ProviderStatusCode.Should().Be(-110);
-            ex.Message.Should().Contain("API key");
+            ex.Message.Should().NotContain("API key");
         }
 
         [Fact]
@@ -232,6 +233,168 @@ namespace IranSms.Tests.Melipayamak
 
             lines.Should().Equal("50001234", "50005678");
             transport.LastAction.Should().Be("GetUserNumbers");
+        }
+
+        [Fact]
+        public async Task SendAsync_ParsesRestResponseRecId()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"98765\",\"RetStatus\":1,\"StrRetStatus\":\"Ok\"}" };
+            var client = CreateClient(transport);
+
+            var result = await client.SendAsync("09120000000", "hello", "5000", TestContext.Current.CancellationToken);
+
+            result.MessageId.Should().Be("98765");
+        }
+
+        [Theory]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(9)]
+        [InlineData(10)]
+        [InlineData(11)]
+        [InlineData(12)]
+        [InlineData(14)]
+        [InlineData(15)]
+        [InlineData(16)]
+        [InlineData(17)]
+        [InlineData(18)]
+        [InlineData(35)]
+        public async Task SendAsync_PositiveErrorCodes_Throw(int code)
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = $"{{\"Value\":\"{code}\",\"RetStatus\":1,\"StrRetStatus\":\"Error\"}}" };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendAsync("09120000000", "hello", "5000", TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(code);
+        }
+
+        [Fact]
+        public async Task Otp_ParsesRestResponseRecId()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"555\",\"RetStatus\":1,\"StrRetStatus\":\"Ok\"}" };
+            var client = CreateClient(transport);
+
+            var result = await client.SendOtpAsync(
+                "09120000000",
+                new OtpRequest { Code = "12345", SenderLine = "5000" },
+                TestContext.Current.CancellationToken);
+
+            result.MessageId.Should().Be("555");
+        }
+
+        [Fact]
+        public async Task Otp_RestError_Throws()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"2\",\"RetStatus\":1,\"StrRetStatus\":\"Insufficient credit\"}" };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendOtpAsync(
+                "09120000000",
+                new OtpRequest { Code = "12345", SenderLine = "5000" },
+                TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(2);
+            ex.Message.Should().NotContain("Insufficient credit");
+        }
+
+        [Fact]
+        public async Task GetMessageStatusAsync_ParsesArrayValue()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"[1]\",\"RetStatus\":1,\"StrRetStatus\":\"Ok\"}" };
+            var client = CreateClient(transport);
+
+            var result = await client.GetMessageStatusAsync(
+                new MessageIdentifier("98765", MessageIdentifierType.ProviderMessageId),
+                TestContext.Current.CancellationToken);
+
+            result.State.Should().Be(MessageDeliveryState.Delivered);
+            result.RawStatus.Should().Be("[1]");
+        }
+
+        [Fact]
+        public async Task GetMessageStatusAsync_ParsesRestResponse()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"1\",\"RetStatus\":1,\"StrRetStatus\":\"Ok\"}" };
+            var client = CreateClient(transport);
+
+            var result = await client.GetMessageStatusAsync(
+                new MessageIdentifier("98765", MessageIdentifierType.ProviderMessageId),
+                TestContext.Current.CancellationToken);
+
+            result.State.Should().Be(MessageDeliveryState.Delivered);
+            result.RawStatus.Should().Be("1");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_ApiErrorUsesValueCode()
+        {
+            var transport = new FakeMelipayamakTransport { ResponseBody = "{\"Value\":\"-110\",\"RetStatus\":0,\"StrRetStatus\":\"API key required\"}" };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderStatusCode.Should().Be(-110);
+            ex.Message.Should().NotContain("API key required");
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_RejectsMoreThanOneHundredRecipients()
+        {
+            var recipients = Enumerable.Range(0, 101).Select(i => $"091200000{i:00}").ToArray();
+            var client = CreateClient(new FakeMelipayamakTransport());
+
+            Func<Task> act = async () => await client.SendBulkAsync(recipients, "bulk", "5000", TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task SendAsync_RejectsInvalidValues()
+        {
+            var client = CreateClient(new FakeMelipayamakTransport());
+
+            Func<Task> nullRecipient = async () => await client.SendAsync(null!, "hello", "5000", TestContext.Current.CancellationToken);
+            Func<Task> blankRecipient = async () => await client.SendAsync(" ", "hello", "5000", TestContext.Current.CancellationToken);
+            Func<Task> nullMessage = async () => await client.SendAsync("09120000000", null!, "5000", TestContext.Current.CancellationToken);
+            Func<Task> blankMessage = async () => await client.SendAsync("09120000000", " ", "5000", TestContext.Current.CancellationToken);
+            Func<Task> blankSender = async () => await client.SendAsync("09120000000", "hello", " ", TestContext.Current.CancellationToken);
+
+            await nullRecipient.Should().ThrowAsync<ArgumentNullException>();
+            await blankRecipient.Should().ThrowAsync<ArgumentException>();
+            await nullMessage.Should().ThrowAsync<ArgumentNullException>();
+            await blankMessage.Should().ThrowAsync<ArgumentException>();
+            await blankSender.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_RejectsInvalidRecipient()
+        {
+            var client = CreateClient(new FakeMelipayamakTransport());
+
+            Func<Task> act = async () => await client.SendBulkAsync(InvalidRecipients, "bulk", "5000", TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task Otp_RejectsInvalidCode()
+        {
+            var client = CreateClient(new FakeMelipayamakTransport());
+
+            Func<Task> act = async () => await client.SendOtpAsync(
+                "09120000000",
+                new OtpRequest { Code = "not-a-number", SenderLine = "5000" },
+                TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<ArgumentException>();
         }
 
         [Fact]

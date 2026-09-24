@@ -103,15 +103,14 @@ namespace IranSms.Tests.SmsIr
         }
 
         [Fact]
-        public async Task SendBulkAsync_UsesPackId_WhenMessageIdsEmpty()
+        public async Task SendBulkAsync_Throws_WhenMessageIdsHaveNoValidId()
         {
             var transport = new FakeSmsIrTransport { ResponseBody = OkData("{\"packId\":\"2b99e63c-9bf8-4a21-9bfe-3f72dc1b46f1\",\"messageIds\":[],\"cost\":0}") };
             var client = CreateClient(transport);
 
-            var result = await client.SendBulkAsync(TwoRecipients, "bulk", "5000", TestContext.Current.CancellationToken);
+            Func<Task> act = async () => await client.SendBulkAsync(TwoRecipients, "bulk", "5000", TestContext.Current.CancellationToken);
 
-            result.MessageId.Should().Be("2b99e63c-9bf8-4a21-9bfe-3f72dc1b46f1");
-            result.RecipientIds.Should().BeEmpty();
+            await act.Should().ThrowAsync<IranSmsException>();
         }
 
         [Fact]
@@ -305,6 +304,66 @@ namespace IranSms.Tests.SmsIr
             var lines = await client.GetSenderLinesAsync(TestContext.Current.CancellationToken);
 
             lines.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_PreservesPartialFailureAndUsesFirstValidId()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = OkData("{\"messageIds\":[null,123,0],\"cost\":1}") };
+            var client = CreateClient(transport);
+
+            var result = await client.SendBulkAsync(Enumerable.Range(0, 3).Select(i => $"0912000000{i}"), "bulk", "5000", TestContext.Current.CancellationToken);
+
+            result.MessageId.Should().Be("123");
+            result.RecipientIds.Should().Equal(string.Empty, "123", string.Empty);
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_Throws_WhenAllMessageIdsAreInvalid()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = OkData("{\"messageIds\":[null,0],\"cost\":0}") };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendBulkAsync(Enumerable.Range(0, 2).Select(i => $"0912000000{i}"), "bulk", "5000", TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
+        }
+
+        [Fact]
+        public async Task Otp_Throws_WhenMessageIdIsMissing()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = OkData("{\"cost\":1}") };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendOtpAsync(
+                "09120000000",
+                new OtpRequest { TemplateId = "123456", Code = "12345" },
+                TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
+        }
+
+        [Fact]
+        public async Task SendAsync_RejectsInvalidInput()
+        {
+            var client = CreateClient(new FakeSmsIrTransport());
+
+            Func<Task> recipient = async () => await client.SendAsync(" ", "hi", "5000", TestContext.Current.CancellationToken);
+            Func<Task> message = async () => await client.SendAsync("09120000000", " ", "5000", TestContext.Current.CancellationToken);
+
+            await recipient.Should().ThrowAsync<ArgumentException>();
+            await message.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task SendAsync_RejectsMalformedRoot()
+        {
+            var transport = new FakeSmsIrTransport { ResponseBody = "[]" };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendAsync("09120000000", "hi", "5000", TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
         }
 
         [Fact]

@@ -1,6 +1,6 @@
 # IranSMS
 
-**Unified Iranian SMS Abstraction for `.NET`** — Version `0.1.0-beta.1`
+**Unified Iranian SMS Abstraction for `.NET`** — Version `0.2.0-beta.1`
 
 [![Build](https://github.com/NimaHp/IranSMS/actions/workflows/build.yml/badge.svg)](https://github.com/NimaHp/IranSMS/actions)
 [![License](https://img.shields.io/github/license/NimaHp/IranSMS)](LICENSE)
@@ -58,7 +58,7 @@ A lightweight, dependency-free, and provider-agnostic library for sending SMS vi
 | Message history | MessageHistory | — | 🗓 Roadmap |
 | Receive message | Receive | — | 🗓 Roadmap |
 | Account info | AccountInfo | ISmsAccountInfo.GetBalanceAsync | ✅ Implemented |
-| Line management | LineManagement | ISmsAccountInfo.GetSenderLinesAsync | ✅ Implemented |
+| Sender line enumeration | SenderLines | ISmsAccountInfo.GetSenderLinesAsync | ✅ Implemented |
 | Template management | TemplateManagement | — | 🗓 Roadmap |
 | Flash message | FlashMessage | — | 🗓 Roadmap |
 | Voice message | VoiceMessage | — | 🗓 Roadmap |
@@ -217,7 +217,7 @@ dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10
 dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.0
 ```
 
-150 test cases (`xunit v3` + `FluentAssertions`) — all passing on both .NET 10 and .NET 8.
+222 test cases (`xunit v3` + `FluentAssertions`) — all passing on both .NET 10 and .NET 8.
 
 ## CI/CD Pipeline
 

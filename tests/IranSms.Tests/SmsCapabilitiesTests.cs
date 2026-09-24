@@ -12,7 +12,7 @@ public class SmsCapabilitiesTests
         var seen = new HashSet<long>();
         foreach (SmsCapabilities v in values)
         {
-            if (v == SmsCapabilities.None)
+            if (v == SmsCapabilities.None || v == SmsCapabilities.LineManagement)
             {
                 continue;
             }
@@ -33,7 +33,7 @@ public class SmsCapabilitiesTests
     [InlineData(SmsCapabilities.MessageHistory)]
     [InlineData(SmsCapabilities.Receive)]
     [InlineData(SmsCapabilities.AccountInfo)]
-    [InlineData(SmsCapabilities.LineManagement)]
+    [InlineData(SmsCapabilities.SenderLines)]
     [InlineData(SmsCapabilities.TemplateManagement)]
     [InlineData(SmsCapabilities.FlashMessage)]
     [InlineData(SmsCapabilities.VoiceMessage)]

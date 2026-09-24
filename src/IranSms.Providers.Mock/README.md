@@ -35,7 +35,7 @@ var balance = await client.GetBalanceAsync();
 var lines = await client.GetSenderLinesAsync();
 ```
 
-Supports all six implemented capabilities: `Send`, `BulkSend`, `OtpSend`, `DeliveryStatus`, `AccountInfo`, `LineManagement`.
+Supports all six implemented capabilities: `Send`, `BulkSend`, `OtpSend`, `DeliveryStatus`, `AccountInfo`, `SenderLines`.
 
 ## License
 

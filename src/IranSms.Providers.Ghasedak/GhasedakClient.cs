@@ -17,7 +17,7 @@ namespace IranSms.Providers.Ghasedak
         // Official Ghasedak WebService method names (relative to the gateway base URL).
         private const string SendSinglePath = "SendSingleSMS";
         private const string SendBulkPath = "SendBulkSMS";
-        private const string SendOtpPath = "SendOtpSMS";
+        private const string SendOtpPath = "SendOtpWithParams";
         private const string CheckSmsStatusPath = "CheckSmsStatus";
         private const string AccountInfoPath = "GetAccountInformation";
 
@@ -64,13 +64,17 @@ namespace IranSms.Providers.Ghasedak
         {
             if (recipient is null)
                 throw new ArgumentNullException(nameof(recipient));
+            if (string.IsNullOrWhiteSpace(recipient))
+                throw new ArgumentException("Recipient is required.", nameof(recipient));
             if (message is null)
                 throw new ArgumentNullException(nameof(message));
+            if (message.Length > MaxMessageLength)
+                throw new ArgumentException($"Ghasedak messages are limited to {MaxMessageLength} characters.", nameof(message));
 
             var body = new Dictionary<string, object>
             {
                 ["message"] = message,
-                ["receptor"] = recipient,
+                ["receptor"] = recipient.Trim(),
             };
             if (senderLine != null)
                 body["lineNumber"] = senderLine;
@@ -81,11 +85,7 @@ namespace IranSms.Providers.Ghasedak
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
             if (string.IsNullOrWhiteSpace(msgId))
-                throw new IranSmsException("Ghasedak did not return a MessageId for SendSingleSMS.")
-                {
-                    ProviderName = "Ghasedak",
-                    RawResponseBody = raw,
-                };
+                throw MissingMessageId("SendSingleSMS", raw);
             return new SmsSendResult(msgId!);
         }
 
@@ -101,11 +101,19 @@ namespace IranSms.Providers.Ghasedak
             if (message is null)
                 throw new ArgumentNullException(nameof(message));
 
-            var list = recipients as IReadOnlyList<string> ?? recipients.ToList();
-            if (list.Count == 0)
+            var source = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxBulkRecipients);
+            if (source.Count == 0)
                 throw new ArgumentException("At least one recipient is required.", nameof(recipients));
-            if (list.Count > MaxBulkRecipients)
+            if (source.Count > MaxBulkRecipients)
                 throw new ArgumentException($"Ghasedak bulk send supports at most {MaxBulkRecipients} recipients.", nameof(recipients));
+
+            var list = new string[source.Count];
+            for (var i = 0; i < source.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(source[i]))
+                    throw new ArgumentException("Recipients cannot contain null or whitespace values.", nameof(recipients));
+                list[i] = source[i].Trim();
+            }
             if (message.Length > MaxMessageLength)
                 throw new ArgumentException($"Ghasedak messages are limited to {MaxMessageLength} characters.", nameof(message));
 
@@ -121,14 +129,13 @@ namespace IranSms.Providers.Ghasedak
             var raw = await _transport.PostJsonAsync(SendBulkPath, json, cancellationToken).ConfigureAwait(false);
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
-            var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
-            if (string.IsNullOrWhiteSpace(msgId))
-                throw new IranSmsException("Ghasedak did not return a MessageId for SendBulkSMS.")
-                {
-                    ProviderName = "Ghasedak",
-                    RawResponseBody = raw,
-                };
-            return new SmsSendResult(msgId!);
+            var msgIds = envelope != null ? GhasedakResponse.GetDataItemStrings(envelope, "Receptors", "MessageId") : null;
+            if (msgIds == null || msgIds.Length == 0)
+                throw MissingMessageId("SendBulkSMS", raw);
+            return new SmsSendResult(msgIds[0])
+            {
+                RecipientIds = msgIds,
+            };
         }
 
         /// <inheritdoc />
@@ -139,6 +146,8 @@ namespace IranSms.Providers.Ghasedak
         {
             if (recipient is null)
                 throw new ArgumentNullException(nameof(recipient));
+            if (string.IsNullOrWhiteSpace(recipient))
+                throw new ArgumentException("Recipient is required.", nameof(recipient));
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
             if (request.SendDate.HasValue)
@@ -147,30 +156,47 @@ namespace IranSms.Providers.Ghasedak
             if (string.IsNullOrWhiteSpace(request.TemplateId))
                 throw new ArgumentException("Ghasedak OTP requires a TemplateId (template name).", nameof(request));
 
+            var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (request.Parameters is { Count: > 0 })
+            {
+                foreach (var parameter in request.Parameters)
+                    parameters[parameter.Key] = parameter.Value;
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Code))
+            {
+                parameters["param1"] = request.Code!;
+            }
+
+            if (!parameters.TryGetValue("param1", out var param1) || string.IsNullOrWhiteSpace(param1))
+                throw new ArgumentException("Ghasedak OTP requires Code or Parameters with a non-empty param1.", nameof(request));
+            foreach (var parameter in parameters)
+            {
+                if (!IsOtpParameterName(parameter.Key) || string.IsNullOrWhiteSpace(parameter.Value))
+                    throw new ArgumentException("Ghasedak OTP parameters must be named param1 through param10 and have values.", nameof(request));
+            }
+
             var body = new Dictionary<string, object>
             {
                 ["templateName"] = request.TemplateId!,
                 ["receptors"] = new[]
                 {
-                    new { mobile = recipient },
+                    new { mobile = recipient.Trim() },
                 },
-                ["inputs"] = request.Parameters == null
-                    ? Array.Empty<object>()
-                    : request.Parameters.Select(kv => (object)new { param = kv.Key, value = kv.Value }).ToArray(),
             };
+            for (var i = 1; i <= 10; i++)
+            {
+                if (parameters.TryGetValue("param" + i.ToString(CultureInfo.InvariantCulture), out var value))
+                    body["param" + i.ToString(CultureInfo.InvariantCulture)] = value;
+            }
 
             var json = JsonSerializer.Serialize(body);
             var raw = await _transport.PostJsonAsync(SendOtpPath, json, cancellationToken).ConfigureAwait(false);
             var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
 
-            var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
-            if (string.IsNullOrWhiteSpace(msgId))
-                throw new IranSmsException("Ghasedak did not return a MessageId for SendOtpSMS.")
-                {
-                    ProviderName = "Ghasedak",
-                    RawResponseBody = raw,
-                };
-            return new OtpSendResult(msgId!);
+            var msgIds = envelope != null ? GhasedakResponse.GetDataItemStrings(envelope, "Items", "MessageId") : null;
+            if (msgIds == null || msgIds.Length == 0)
+                throw MissingMessageId("SendOtpWithParams", raw);
+            return new OtpSendResult(msgIds[0]);
         }
 
         /// <inheritdoc />
@@ -181,7 +207,19 @@ namespace IranSms.Providers.Ghasedak
             if (message.Value is null)
                 throw new ArgumentNullException(nameof(message));
 
-            var type = message.Type == MessageIdentifierType.ProviderMessageId ? "MessageId" : "ClientReferenceId";
+            string type;
+            switch (message.Type)
+            {
+                case MessageIdentifierType.ProviderMessageId:
+                    type = "1";
+                    break;
+                case MessageIdentifierType.ClientReferenceId:
+                    type = "2";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(message), message.Type, "Unsupported message identifier type.");
+            }
+
             var query = new Dictionary<string, string>
             {
                 ["Ids"] = message.Value,
@@ -200,7 +238,9 @@ namespace IranSms.Providers.Ghasedak
             }
 
             var data = envelope.Data;
-            if (data == null || data.Value.ValueKind != JsonValueKind.Array || data.Value.GetArrayLength() == 0)
+            if (data == null || (data.Value.ValueKind != JsonValueKind.Array && data.Value.ValueKind != JsonValueKind.Null))
+                throw MalformedResponse(raw);
+            if (data.Value.ValueKind == JsonValueKind.Null || data.Value.GetArrayLength() == 0)
             {
                 return new MessageStatusResult(MessageDeliveryState.Unknown, message)
                 {
@@ -209,12 +249,24 @@ namespace IranSms.Providers.Ghasedak
             }
 
             var item = data.Value[0];
+            if (item.ValueKind != JsonValueKind.Object)
+                throw MalformedResponse(raw);
+
             var state = MessageDeliveryState.Unknown;
             var rawStatus = "unknown";
-            if (item.TryGetProperty("Status", out var st))
+            if (item.TryGetProperty("Status", out var st) && st.ValueKind != JsonValueKind.Null)
             {
-                var code = st.ValueKind == JsonValueKind.Number ? st.GetInt32() : 0;
-                state = GhasedakResponse.MapDeliveryState(code);
+                long code;
+                if (st.ValueKind == JsonValueKind.Number)
+                {
+                    if (!st.TryGetInt64(out code))
+                        throw MalformedResponse(raw);
+                }
+                else if (st.ValueKind != JsonValueKind.String || !long.TryParse(st.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out code))
+                    throw MalformedResponse(raw);
+                if (code < int.MinValue || code > int.MaxValue)
+                    throw MalformedResponse(raw);
+                state = GhasedakResponse.MapDeliveryState((int)code);
                 rawStatus = code.ToString(CultureInfo.InvariantCulture);
             }
 
@@ -245,14 +297,17 @@ namespace IranSms.Providers.Ghasedak
                 };
 
             var data = envelope.Data.Value;
-            decimal credit = 0m;
-            if (data.TryGetProperty("Credit", out var cr))
+            if (!data.TryGetProperty("Credit", out var creditValue))
+                throw MissingCredit(raw);
+            decimal credit;
+            if (creditValue.ValueKind == JsonValueKind.Number)
             {
-                if (cr.ValueKind == JsonValueKind.Number && cr.TryGetDecimal(out var d))
-                    credit = d;
-                else if (cr.ValueKind == JsonValueKind.String && decimal.TryParse(cr.GetString(), System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
-                    credit = p;
+                if (!creditValue.TryGetDecimal(out credit))
+                    throw MissingCredit(raw);
             }
+            else if (creditValue.ValueKind != JsonValueKind.String ||
+                !decimal.TryParse(creditValue.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out credit))
+                throw MissingCredit(raw);
 
             DateTimeOffset? expireDate = null;
             if (data.TryGetProperty("ExpireDate", out var ed) && ed.ValueKind == JsonValueKind.String)
@@ -286,5 +341,47 @@ namespace IranSms.Providers.Ghasedak
         {
             (_transport as IDisposable)?.Dispose();
         }
+
+        private static List<string> MaterializeRecipients(IEnumerable<string> recipients, int max)
+        {
+            var list = new List<string>();
+            foreach (var recipient in recipients)
+            {
+                list.Add(recipient);
+                if (list.Count > max)
+                    throw new ArgumentException($"Ghasedak bulk send supports at most {max} recipients.", nameof(recipients));
+            }
+            return list;
+        }
+
+        private static bool IsOtpParameterName(string name)
+        {
+            if (string.IsNullOrEmpty(name) || !name.StartsWith("param", StringComparison.Ordinal))
+                return false;
+            if (!int.TryParse(name.Substring(5), NumberStyles.None, CultureInfo.InvariantCulture, out var number))
+                return false;
+            return number >= 1 && number <= 10;
+        }
+
+        private static IranSmsException MissingMessageId(string operation, string raw)
+            => new IranSmsException($"Ghasedak did not return a MessageId for {operation}.")
+            {
+                ProviderName = "Ghasedak",
+                RawResponseBody = raw,
+            };
+
+        private static IranSmsException MissingCredit(string raw)
+            => new IranSmsException("Ghasedak did not return a valid Credit for GetAccountInformation.")
+            {
+                ProviderName = "Ghasedak",
+                RawResponseBody = raw,
+            };
+
+        private static IranSmsException MalformedResponse(string raw)
+            => new IranSmsException("Ghasedak returned a malformed response.")
+            {
+                ProviderName = "Ghasedak",
+                RawResponseBody = raw,
+            };
     }
 }

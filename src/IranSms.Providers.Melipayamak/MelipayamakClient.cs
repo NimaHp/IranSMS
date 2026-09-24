@@ -1,4 +1,6 @@
-﻿namespace IranSms.Providers.Melipayamak
+﻿using System.Globalization;
+
+namespace IranSms.Providers.Melipayamak
 {
     /// <summary>
     /// Melipayamak SMS provider client (REST API).
@@ -13,6 +15,8 @@
         private const string GetDeliveriesPath = "GetDeliveries2";
         private const string GetCreditPath = "GetCredit";
         private const string GetNumbersPath = "GetUserNumbers";
+
+        private const int MaxBulkRecipients = 100;
 
         private static readonly char[] NumbersSeparators = new char[] { ',', '\n', '\r' };
 
@@ -59,7 +63,7 @@
             | SmsCapabilities.OtpSend
             | SmsCapabilities.DeliveryStatus
             | SmsCapabilities.AccountInfo
-            | SmsCapabilities.LineManagement;
+            | SmsCapabilities.SenderLines;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -68,15 +72,16 @@
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
-            if (senderLine is null)
-                throw new ArgumentException("Melipayamak requires a sender line ('from') for send.", nameof(senderLine));
+            ValidateRecipient(recipient);
+            ValidateMessage(message);
+            ValidateSenderLine(senderLine);
 
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
                 ["password"] = _password,
-                ["from"] = senderLine,
-                ["to"] = recipient,
+                ["from"] = senderLine!,
+                ["to"] = recipient.Trim(),
                 ["text"] = message,
             };
 
@@ -93,19 +98,28 @@
         {
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
-            if (senderLine is null)
-                throw new ArgumentException("Melipayamak requires a sender line ('from') for send.", nameof(senderLine));
 
-            var list = recipients as IReadOnlyList<string> ?? recipients.ToList();
+            ValidateMessage(message);
+            ValidateSenderLine(senderLine);
+
+            var list = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxBulkRecipients);
             if (list.Count == 0)
                 throw new ArgumentException("At least one recipient is required.", nameof(recipients));
+            if (list.Count > MaxBulkRecipients)
+                throw new ArgumentException($"Melipayamak accepts at most {MaxBulkRecipients} recipients per call.", nameof(recipients));
+            var normalizedRecipients = new string[list.Count];
+            for (var i = 0; i < list.Count; i++)
+            {
+                ValidateRecipient(list[i]);
+                normalizedRecipients[i] = list[i].Trim();
+            }
 
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
                 ["password"] = _password,
-                ["from"] = senderLine,
-                ["to"] = string.Join(",", list),
+                ["from"] = senderLine!,
+                ["to"] = string.Join(",", normalizedRecipients),
                 ["text"] = message,
             };
 
@@ -119,24 +133,26 @@
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
+            ValidateRecipient(recipient);
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
 
             if (request.SendDate.HasValue)
                 throw new NotSupportedException("Melipayamak (and all current providers) do not honour OtpRequest.SendDate — schedule delivery in your application instead.");
 
-            if (string.IsNullOrWhiteSpace(request.Code))
-                throw new ArgumentException("Melipayamak OTP requires a Code.", nameof(request));
+            if (string.IsNullOrWhiteSpace(request.Code) ||
+                !int.TryParse(request.Code, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code) ||
+                code <= 0)
+                throw new ArgumentException("Melipayamak OTP requires a positive integer Code.", nameof(request));
 
-            if (request.SenderLine is null)
-                throw new ArgumentException("Melipayamak OTP requires a sender line ('from').", nameof(request));
+            ValidateSenderLine(request.SenderLine);
 
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
                 ["password"] = _password,
-                ["from"] = request.SenderLine,
-                ["to"] = recipient,
+                ["from"] = request.SenderLine!,
+                ["to"] = recipient.Trim(),
                 ["code"] = request.Code!,
             };
 
@@ -149,6 +165,8 @@
             MessageIdentifier message,
             CancellationToken cancellationToken = default)
         {
+            if (message.Value is null)
+                throw new ArgumentNullException(nameof(message));
             if (message.Type != MessageIdentifierType.ProviderMessageId)
                 throw new ArgumentException("Melipayamak delivery status supports provider message ids (recId) only.", nameof(message));
 
@@ -163,17 +181,34 @@
             };
 
             var body = await _transport.PostFormAsync(GetDeliveriesPath, form, cancellationToken).ConfigureAwait(false);
-            return new MessageStatusResult(MelipayamakResponse.MapDeliveryState(body), message)
+            var envelope = MelipayamakResponse.ParseRestEnvelope(body);
+            string? status;
+            if (envelope is not null)
             {
-                RawStatus = body.Trim(),
+                if (!envelope.HasRetStatus || envelope.RetStatus != 1)
+                {
+                    var code = MelipayamakResponse.TryParseInteger(envelope.Value, out var parsedCode) && MelipayamakResponse.IsErrorCode(parsedCode)
+                        ? parsedCode
+                        : (long?)null;
+                    MelipayamakResponse.ThrowApiError(body, envelope, code);
+                }
+
+                status = envelope.Value;
+            }
+            else
+            {
+                status = body;
+            }
+
+            return new MessageStatusResult(MelipayamakResponse.MapDeliveryState(status), message)
+            {
+                RawStatus = status?.Trim(),
             };
         }
 
         /// <inheritdoc />
         public async Task<AccountBalanceResult> GetBalanceAsync(CancellationToken cancellationToken = default)
         {
-            // POST GetCredit — RestClient.cs endpoint api/SendSMS/GetCredit returns JSON { Value, RetStatus, StrRetStatus }.
-            // See https://github.com/Melipayamak/melipayamak-Csharp/blob/master/RestClient.cs and https://www.melipayamak.com/api/getcredit/
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
@@ -181,33 +216,35 @@
             };
             var body = await _transport.PostFormAsync(GetCreditPath, form, cancellationToken).ConfigureAwait(false);
             var parsed = MelipayamakResponse.ParseRestEnvelope(body);
-            if (parsed is not null && parsed.RetStatus == 1)
+            if (parsed is not null)
             {
-                if (decimal.TryParse(parsed.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var credit))
+                if (MelipayamakResponse.TryParseInteger(parsed.Value, out var valueCode) && MelipayamakResponse.IsErrorCode(valueCode))
+                    MelipayamakResponse.ThrowApiError(body, parsed, valueCode);
+                if (!parsed.HasRetStatus || parsed.RetStatus != 1)
+                {
+                    var code = MelipayamakResponse.TryParseInteger(parsed.Value, out var parsedCode) && MelipayamakResponse.IsErrorCode(parsedCode)
+                        ? parsedCode
+                        : (long?)null;
+                    MelipayamakResponse.ThrowApiError(body, parsed, code);
+                }
+
+                if (decimal.TryParse(parsed.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var credit))
                     return new AccountBalanceResult(credit);
-                // Value may be numeric JSON — try raw
                 if (!string.IsNullOrWhiteSpace(parsed.Value))
-                    throw new IranSmsException($"Melipayamak returned an unrecognized credit value: {MelipayamakResponse.TruncateForLog(parsed.Value ?? string.Empty)}")
+                    throw new IranSmsException("Melipayamak returned an unrecognized credit value.")
                     {
                         ProviderName = ProviderName,
                         RawResponseBody = body,
                     };
             }
 
-            if (parsed is not null && parsed.RetStatus != 1)
-                throw new IranSmsException($"Melipayamak API error ({parsed.RetStatus}): {parsed.StrRetStatus ?? MelipayamakResponse.DescribeError(parsed.RetStatus)}")
-                {
-                    ProviderName = ProviderName,
-                    ProviderStatusCode = parsed.RetStatus,
-                    RawResponseBody = body,
-                };
-
-            // Legacy plain-number fallback: some deployments return bare 42.5
             var trimmed = body.Trim().Trim('"');
-            if (decimal.TryParse(trimmed, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var plainCredit) && plainCredit >= 0)
+            if (MelipayamakResponse.TryParseInteger(trimmed, out var plainCode) && MelipayamakResponse.IsErrorCode(plainCode))
+                MelipayamakResponse.ThrowPlainError(body, plainCode);
+            if (decimal.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out var plainCredit) && plainCredit >= 0)
                 return new AccountBalanceResult(plainCredit);
 
-            throw new IranSmsException($"Melipayamak returned an unrecognized credit response: {MelipayamakResponse.TruncateForLog(body.Trim())}")
+            throw new IranSmsException("Melipayamak returned an unrecognized credit response.")
             {
                 ProviderName = ProviderName,
                 RawResponseBody = body,
@@ -217,7 +254,6 @@
         /// <inheritdoc />
         public async Task<IReadOnlyList<string>> GetSenderLinesAsync(CancellationToken cancellationToken = default)
         {
-            // POST GetUserNumbers — RestClient.cs: GetUserNumbersOp = "GetUserNumbers" on api/SendSMS/
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
@@ -227,19 +263,20 @@
             var parsed = MelipayamakResponse.ParseRestEnvelope(body);
             if (parsed is not null)
             {
-                if (parsed.RetStatus != 1)
-                    throw new IranSmsException($"Melipayamak API error ({parsed.RetStatus}): {parsed.StrRetStatus ?? MelipayamakResponse.DescribeError(parsed.RetStatus)}")
-                    {
-                        ProviderName = ProviderName,
-                        ProviderStatusCode = parsed.RetStatus,
-                        RawResponseBody = body,
-                    };
+                if (MelipayamakResponse.TryParseInteger(parsed.Value, out var valueCode) && MelipayamakResponse.IsErrorCode(valueCode))
+                    MelipayamakResponse.ThrowApiError(body, parsed, valueCode);
+                if (!parsed.HasRetStatus || parsed.RetStatus != 1)
+                {
+                    var code = MelipayamakResponse.TryParseInteger(parsed.Value, out var parsedCode) && MelipayamakResponse.IsErrorCode(parsedCode)
+                        ? parsedCode
+                        : (long?)null;
+                    MelipayamakResponse.ThrowApiError(body, parsed, code);
+                }
 
                 var value = parsed.Value ?? string.Empty;
                 var t = value.Trim();
                 if (string.IsNullOrEmpty(t))
                     return Array.Empty<string>();
-                // Value is often JSON-encoded array string: "[\"5000...\"]" — peel it.
                 if (t.StartsWith("[", StringComparison.Ordinal))
                 {
                     try
@@ -258,7 +295,6 @@
                 return new[] { t.Trim('"', '\'') };
             }
 
-            // Legacy plain fallback (bare CSV/JSON without envelope)
             var trimmed = body.Trim();
             if (string.IsNullOrEmpty(trimmed))
                 return Array.Empty<string>();
@@ -278,6 +314,40 @@
             if (legacyLines.Length > 0)
                 return legacyLines;
             return new[] { trimmed.Trim('"', '\'') };
+        }
+
+        private static List<string> MaterializeRecipients(IEnumerable<string> recipients, int max)
+        {
+            var list = new List<string>();
+            foreach (var recipient in recipients)
+            {
+                list.Add(recipient);
+                if (list.Count > max)
+                    throw new ArgumentException($"Melipayamak accepts at most {max} recipients per call.", nameof(recipients));
+            }
+            return list;
+        }
+
+        private static void ValidateRecipient(string recipient)
+        {
+            if (recipient is null)
+                throw new ArgumentNullException(nameof(recipient));
+            if (string.IsNullOrWhiteSpace(recipient))
+                throw new ArgumentException("Recipient is required.", nameof(recipient));
+        }
+
+        private static void ValidateMessage(string message)
+        {
+            if (message is null)
+                throw new ArgumentNullException(nameof(message));
+            if (string.IsNullOrWhiteSpace(message))
+                throw new ArgumentException("Message is required.", nameof(message));
+        }
+
+        private static void ValidateSenderLine(string? senderLine)
+        {
+            if (string.IsNullOrWhiteSpace(senderLine))
+                throw new ArgumentException("Melipayamak requires a sender line ('from').", nameof(senderLine));
         }
 
         /// <inheritdoc />

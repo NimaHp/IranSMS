@@ -8,6 +8,8 @@ namespace IranSms.Tests.Ghasedak
     {
         private const string ApiKey = "test-key";
         private static readonly string[] TwoRecipients = { "09120000000", "09120000001" };
+        private static readonly string[] PaddedRecipient = { " 09120000000 " };
+        private static readonly string[] WhitespaceRecipient = { " \t " };
         private static readonly string[] EmptyRecipients = Array.Empty<string>();
         private static readonly string[] Over100Recipients = CreateMany(101);
 
@@ -59,6 +61,55 @@ namespace IranSms.Tests.Ghasedak
         }
 
         [Fact]
+        public async Task SendAsync_TrimsRecipient_AndRejectsWhitespace()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{\"MessageId\":\"gh-1\"}}",
+            };
+            var client = CreateClient(transport);
+
+            await client.SendAsync(" 09120000000 ", "hi", null, TestContext.Current.CancellationToken);
+            transport.LastJsonBody.Should().Contain("\"receptor\":\"09120000000\"");
+
+            Func<Task> act = async () => await client.SendAsync(" \t ", "hi", null, TestContext.Current.CancellationToken);
+            await act.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task SendAsync_Accepts1000Characters_AndRejectsLongerMessage()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{\"MessageId\":\"gh-1\"}}",
+            };
+            var client = CreateClient(transport);
+
+            await client.SendAsync("09120000000", new string('x', 1000), null, TestContext.Current.CancellationToken);
+            transport.PostCount.Should().Be(1);
+
+            Func<Task> act = async () => await client.SendAsync("09120000000", new string('x', 1001), null, TestContext.Current.CancellationToken);
+            await act.Should().ThrowAsync<ArgumentException>();
+            transport.PostCount.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task SendAsync_MissingMessageId_Throws()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"Data\":{},\"IsSuccess\":true,\"StatusCode\":200}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendAsync("09120000000", "hi", null, TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderName.Should().Be("Ghasedak");
+            ex.RawResponseBody.Should().Be(transport.PostResponse);
+        }
+
+        [Fact]
         public async Task SendAsync_ErrorEnvelope_Throws()
         {
             var transport = new FakeGhasedakTransport
@@ -70,7 +121,28 @@ namespace IranSms.Tests.Ghasedak
             Func<Task> act = async () => await client.SendAsync("09120000000", "hi", null, TestContext.Current.CancellationToken);
             var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
             ex.ProviderStatusCode.Should().Be(418);
-            ex.Message.Should().Contain("?????? ???? ????");
+            ex.Message.Should().NotContain("?????? ???? ????");
+        }
+
+        [Theory]
+        [InlineData("[]")]
+        [InlineData("\"ok\"")]
+        [InlineData("{\"IsSuccess\":\"true\",\"StatusCode\":200,\"Data\":{}}")]
+        [InlineData("{\"IsSuccess\":true,\"StatusCode\":{},\"Data\":{}}")]
+        [InlineData("{\"IsSuccess\":true,\"StatusCode\":200,\"Message\":42,\"Data\":{}}")]
+        public async Task SendAsync_MalformedEnvelope_ThrowsIranSmsException(string response)
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = response,
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendAsync("09120000000", "hi", null, TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderName.Should().Be("Ghasedak");
+            ex.RawResponseBody.Should().Be(response);
         }
 
         [Fact]
@@ -78,15 +150,32 @@ namespace IranSms.Tests.Ghasedak
         {
             var transport = new FakeGhasedakTransport
             {
-                PostResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{\"MessageId\":\"gh-b\"}}",
+                PostResponse = "{\"Data\":{\"Cost\":3537,\"LineNumber\":\"3000\",\"Receptors\":[{\"Receptor\":\"09120000000\",\"MessageId\":\"4248\"},{\"Receptor\":\"09120000001\",\"MessageId\":\"4249\"}]},\"IsSuccess\":true,\"StatusCode\":200,\"Message\":\"ok\"}",
             };
             var client = CreateClient(transport);
 
             var result = await client.SendBulkAsync(TwoRecipients, "bulk", "3000", TestContext.Current.CancellationToken);
 
-            result.MessageId.Should().Be("gh-b");
+            result.MessageId.Should().Be("4248");
+            result.RecipientIds.Should().Equal("4248", "4249");
             transport.LastEndpoint.Should().Be("SendBulkSMS");
             transport.LastJsonBody.Should().Contain("\"receptors\":[\"09120000000\",\"09120000001\"]");
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_Throws_WhenResponseMessageIdIsMissing()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"Data\":{\"Receptors\":[{\"Receptor\":\"09120000000\"}]},\"IsSuccess\":true,\"StatusCode\":200}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendBulkAsync(TwoRecipients, "bulk", null, TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderName.Should().Be("Ghasedak");
+            ex.RawResponseBody.Should().Be(transport.PostResponse);
         }
 
         [Fact]
@@ -94,6 +183,22 @@ namespace IranSms.Tests.Ghasedak
         {
             var client = CreateClient(new FakeGhasedakTransport());
             Func<Task> act = async () => await client.SendBulkAsync(EmptyRecipients, "x", null, TestContext.Current.CancellationToken);
+            await act.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task SendBulkAsync_TrimsRecipients_AndRejectsWhitespace()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"Data\":{\"Receptors\":[{\"MessageId\":\"gh-b\"}]},\"IsSuccess\":true,\"StatusCode\":200}",
+            };
+            var client = CreateClient(transport);
+
+            await client.SendBulkAsync(PaddedRecipient, "bulk", null, TestContext.Current.CancellationToken);
+            transport.LastJsonBody.Should().Contain("\"receptors\":[\"09120000000\"]");
+
+            Func<Task> act = async () => await client.SendBulkAsync(WhitespaceRecipient, "bulk", null, TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
 
@@ -118,7 +223,7 @@ namespace IranSms.Tests.Ghasedak
         {
             var transport = new FakeGhasedakTransport
             {
-                PostResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{\"MessageId\":\"gh-o\"}}",
+                PostResponse = "{\"Data\":{\"LineNumber\":\"10002000200101\",\"MessageBody\":\"code\",\"Items\":[{\"Receptor\":\"09120000000\",\"Cost\":940,\"MessageId\":\"2387931\"}],\"Cost\":940},\"IsSuccess\":true,\"StatusCode\":200,\"Message\":\"ok\"}",
             };
             var client = CreateClient(transport);
 
@@ -127,15 +232,67 @@ namespace IranSms.Tests.Ghasedak
                 new OtpRequest
                 {
                     TemplateId = "verify",
-                    Parameters = new Dictionary<string, string> { ["Code"] = "12345" },
+                    Parameters = new Dictionary<string, string> { ["param1"] = "12345", ["param10"] = "ten" },
                 },
                 TestContext.Current.CancellationToken);
 
-            result.MessageId.Should().Be("gh-o");
-            transport.LastEndpoint.Should().Be("SendOtpSMS");
+            result.MessageId.Should().Be("2387931");
+            transport.LastEndpoint.Should().Be("SendOtpWithParams");
             transport.LastJsonBody.Should().Contain("\"templateName\":\"verify\"");
             transport.LastJsonBody.Should().Contain("\"receptors\":[{\"mobile\":\"09120000000\"}]");
-            transport.LastJsonBody.Should().Contain("\"inputs\":[{\"param\":\"Code\",\"value\":\"12345\"}]");
+            transport.LastJsonBody.Should().Contain("\"param1\":\"12345\"");
+            transport.LastJsonBody.Should().Contain("\"param10\":\"ten\"");
+            transport.LastJsonBody.Should().NotContain("\"inputs\"");
+        }
+
+        [Fact]
+        public async Task Otp_WithCode_UsesParam1()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"Data\":{\"Items\":[{\"MessageId\":\"2387931\"}]},\"IsSuccess\":true,\"StatusCode\":200}",
+            };
+            var client = CreateClient(transport);
+
+            await client.SendOtpAsync(
+                "09120000000",
+                new OtpRequest { TemplateId = "verify", Code = "12345" },
+                TestContext.Current.CancellationToken);
+
+            transport.LastJsonBody.Should().Contain("\"param1\":\"12345\"");
+            transport.LastJsonBody.Should().NotContain("\"inputs\"");
+        }
+
+        [Fact]
+        public async Task Otp_ResponseMessageIdIsMissing_Throws()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                PostResponse = "{\"Data\":{\"Items\":[{\"Receptor\":\"09120000000\"}]},\"IsSuccess\":true,\"StatusCode\":200}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.SendOtpAsync(
+                "09120000000",
+                new OtpRequest { TemplateId = "verify", Parameters = new Dictionary<string, string> { ["param1"] = "12345" } },
+                TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.RawResponseBody.Should().Be(transport.PostResponse);
+        }
+
+        [Fact]
+        public async Task Otp_RejectsWhitespaceAndMissingParam1()
+        {
+            var client = CreateClient(new FakeGhasedakTransport());
+            var request = new OtpRequest { TemplateId = "verify" };
+
+            Func<Task> whitespace = async () => await client.SendOtpAsync(" \t ", request, TestContext.Current.CancellationToken);
+            await whitespace.Should().ThrowAsync<ArgumentException>();
+
+            request.Parameters = new Dictionary<string, string>();
+            Func<Task> missingParam = async () => await client.SendOtpAsync("09120000000", request, TestContext.Current.CancellationToken);
+            await missingParam.Should().ThrowAsync<ArgumentException>();
         }
 
         [Fact]
@@ -168,7 +325,40 @@ namespace IranSms.Tests.Ghasedak
             result.MessageText.Should().Be("hi");
             transport.LastEndpoint.Should().Be("CheckSmsStatus");
             transport.LastQuery!["Ids"].Should().Be("1");
-            transport.LastQuery["Type"].Should().Be("MessageId");
+            transport.LastQuery["Type"].Should().Be("1");
+        }
+
+        [Fact]
+        public async Task GetMessageStatusAsync_ParsesStringStatus()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                GetResponse = "{\"IsSuccess\":true,\"StatusCode\":\"200\",\"Data\":[{\"Status\":\"5\"}]}",
+            };
+            var client = CreateClient(transport);
+
+            var result = await client.GetMessageStatusAsync(
+                new MessageIdentifier("1", MessageIdentifierType.ProviderMessageId),
+                TestContext.Current.CancellationToken);
+
+            result.State.Should().Be(MessageDeliveryState.Delivered);
+            result.RawStatus.Should().Be("5");
+        }
+
+        [Fact]
+        public async Task GetMessageStatusAsync_MalformedData_ThrowsIranSmsException()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                GetResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{}}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetMessageStatusAsync(
+                new MessageIdentifier("1", MessageIdentifierType.ProviderMessageId),
+                TestContext.Current.CancellationToken);
+
+            await act.Should().ThrowAsync<IranSmsException>();
         }
 
         [Theory]
@@ -209,7 +399,7 @@ namespace IranSms.Tests.Ghasedak
                 new MessageIdentifier("ref-1", MessageIdentifierType.ClientReferenceId),
                 TestContext.Current.CancellationToken);
 
-            transport.LastQuery!["Type"].Should().Be("ClientReferenceId");
+            transport.LastQuery!["Type"].Should().Be("2");
             transport.LastQuery["Ids"].Should().Be("ref-1");
         }
 
@@ -245,6 +435,22 @@ namespace IranSms.Tests.Ghasedak
             result.AccountType.Should().Be("silver");
             result.ExpireDate.Should().NotBeNull();
             transport.LastEndpoint.Should().Be("GetAccountInformation");
+        }
+
+        [Fact]
+        public async Task GetBalanceAsync_MissingCredit_Throws()
+        {
+            var transport = new FakeGhasedakTransport
+            {
+                GetResponse = "{\"IsSuccess\":true,\"StatusCode\":200,\"Data\":{\"Plan\":\"silver\"}}",
+            };
+            var client = CreateClient(transport);
+
+            Func<Task> act = async () => await client.GetBalanceAsync(TestContext.Current.CancellationToken);
+
+            var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
+            ex.ProviderName.Should().Be("Ghasedak");
+            ex.RawResponseBody.Should().Be(transport.GetResponse);
         }
 
         [Fact]

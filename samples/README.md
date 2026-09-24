@@ -1,4 +1,4 @@
-﻿﻿# نمونه‌های IranSMS
+﻿# نمونه‌های IranSMS
 
 **فارسی** | [English](README.en.md)
 
@@ -17,19 +17,23 @@
 
 ## کلیدهای دسترسی
 
-کلید را هرگز در کد قرار ندهید. هر سه نمونه در صورت نبود متغیر محیطی به `Mock` برمی‌گردند:
+کلید را هرگز در کد قرار ندهید. هر سه نمونه در صورت نبود متغیر محیطی به `Mock` برمی‌گردند؛ `AspNetCore` برای endpointهای خود به کلید sample نیز نیاز دارد:
 
 ```bash
 export KAVENEGAR_API_KEY=...
 export GHASEDAK_API_KEY=...
 export SMSIR_API_KEY=...
 export MELIPAYAMAK_USERNAME=... MELIPAYAMAK_PASSWORD=...
+export IRANSMS_SAMPLE_API_KEY=...
 ```
 
 برای `AspNetCore` می‌توانید از `UserSecrets` یا `appsettings.json` هم استفاده کنید:
 
 ```bash
-dotnet user-secrets --project samples/AspNetCore set "Kavenegar:ApiKey" "YOUR_KEY"
+dotnet user-secrets --project samples/AspNetCore set "Sample:ApiKey" "YOUR_SAMPLE_KEY"
+# endpointهای /sms/* و /account/* هدر X-Sample-Api-Key را نیز لازم دارند.
+# یا در appsettings.Development.json:
+# { "Sample": { "ApiKey": "YOUR_SAMPLE_KEY" } }
 # یا در appsettings.Development.json:
 # { "Kavenegar": { "ApiKey": "YOUR_KEY" } }
 ```

@@ -17,7 +17,7 @@ namespace IranSms.Providers.Ghasedak
         {
             if (envelope == null)
             {
-                throw new IranSmsException($"Ghasedak returned an unrecognized response: {Truncate(rawBody)}")
+                throw new IranSmsException("Ghasedak returned an unrecognized response.")
                 {
                     ProviderName = "Ghasedak",
                     RawResponseBody = rawBody,
@@ -26,7 +26,7 @@ namespace IranSms.Providers.Ghasedak
 
             if (!envelope.IsSuccess || envelope.StatusCode != 200)
             {
-                throw new IranSmsException($"Ghasedak API error ({(envelope.StatusCode)}): {envelope.Message ?? "unknown"}")
+                throw new IranSmsException($"Ghasedak API error ({envelope.StatusCode}).")
                 {
                     ProviderName = "Ghasedak",
                     ProviderStatusCode = envelope.StatusCode,
@@ -44,13 +44,41 @@ namespace IranSms.Providers.Ghasedak
             if (data == null || data.Value.ValueKind != JsonValueKind.Object)
                 return null;
 
-            if (!data.Value.TryGetProperty(prop, out var el))
+            return GetString(data.Value, prop);
+        }
+
+        public static string[]? GetDataItemStrings(GhasedakEnvelope envelope, string collectionProp, string itemProp)
+        {
+            var data = envelope.Data;
+            if (data == null || data.Value.ValueKind != JsonValueKind.Object ||
+                !data.Value.TryGetProperty(collectionProp, out var items) || items.ValueKind != JsonValueKind.Array)
                 return null;
 
-            return el.ValueKind switch
+            var result = new string[items.GetArrayLength()];
+            for (var i = 0; i < result.Length; i++)
             {
-                JsonValueKind.String => el.GetString(),
-                JsonValueKind.Number => el.GetRawText(),
+                var item = items[i];
+                if (item.ValueKind != JsonValueKind.Object)
+                    return null;
+
+                var value = GetString(item, itemProp);
+                if (string.IsNullOrWhiteSpace(value))
+                    return null;
+                result[i] = value!;
+            }
+
+            return result;
+        }
+
+        private static string? GetString(JsonElement element, string prop)
+        {
+            if (!element.TryGetProperty(prop, out var value))
+                return null;
+
+            return value.ValueKind switch
+            {
+                JsonValueKind.String => value.GetString(),
+                JsonValueKind.Number => value.GetRawText(),
                 _ => null,
             };
         }
@@ -103,7 +131,5 @@ namespace IranSms.Providers.Ghasedak
             return 0;
         }
 
-        private static string Truncate(string s, int max = 500)
-            => s.Length <= max ? s : s.Substring(0, max);
     }
 }
