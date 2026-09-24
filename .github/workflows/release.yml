@@ -5,32 +5,40 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write # create the GitHub Release
+  contents: write
+  packages: write
   pull-requests: read
-  id-token: write # NuGet Trusted Publishing (OIDC)
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: nuget-publish
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            10.0.x
+            8.0.x
 
-      # Single source of truth for the package version: the git tag (v0.2.0-beta.1 -> 0.2.0-beta.1).
-      # Local builds fall back to VersionPrefix + VersionSuffix in Directory.Build.props.
       - name: Resolve package version
         run: |
+          set -euo pipefail
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            VERSION="0.2.0-beta.1"
+            VERSION="$(grep -oP '(?<=<VersionPrefix>)[^<]+' Directory.Build.props || echo '0.2.0')"
+            SUFFIX="$(grep -oP '(?<=<VersionSuffix>)[^<]+' Directory.Build.props || true)"
+            if [ -n "$SUFFIX" ]; then
+              VERSION="$VERSION-$SUFFIX"
+            fi
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
@@ -38,54 +46,27 @@ jobs:
         run: dotnet restore IranSms.slnx --locked-mode
 
       - name: Build
-        run: dotnet build IranSms.slnx -c Release --no-restore -p:Version="$VERSION"
+        run: dotnet build IranSms.slnx -c Release --no-restore -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA"
 
-      # Release gate: the full suite must stay green on the exact tag being published.
       - name: Test (.NET 10)
         run: dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10.0
 
       - name: Test (.NET 8)
         run: dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.0
 
-      # NOTE: no --no-build here on purpose — same reason as build.yml:
-      # validation needs restore to fetch the baseline package.
       - name: Pack
         run: |
+          set -euo pipefail
           for p in Core DependencyInjection Providers.Kavenegar Providers.Ghasedak Providers.SmsIr Providers.Melipayamak Providers.Mock; do
-            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release -o artifacts -p:Version="$VERSION" -p:IranSmsValidatePackage=true
+            dotnet pack "src/IranSms.$p/IranSms.$p.csproj" -c Release -o artifacts -p:Version="$VERSION" -p:RepositoryCommit="$GITHUB_SHA" -p:IranSmsValidatePackage=true
           done
 
-      # Trusted Publishing (OIDC): NuGet/login exchanges the GitHub Actions OIDC
-      # token for a short-lived NuGet API key, so no long-lived NUGET_API_KEY is needed.
-      - name: NuGet login (OIDC -> temp API key)
-        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
-        id: login
-        with:
-          user: ${{ secrets.NUGET_USER }}
-
-      - name: Push to NuGet.org
-        run: dotnet nuget push 'artifacts/*.nupkg' --source https://api.nuget.org/v3/index.json --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --skip-duplicate
+      - name: Push to GitHub Packages
+        if: github.ref_type == 'tag'
+        run: dotnet nuget push 'artifacts/*.nupkg' --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
 
       - name: Create GitHub Release
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        if: github.ref_type == 'tag'
+        run: gh release create "$GITHUB_REF_NAME" artifacts/*.nupkg artifacts/*.snupkg --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Keep the version text in the READMEs in sync with the released tag
-      # ("— نسخه 0.2.0-beta.1" / "— Version 0.2.0-beta.1" on line 3).
-      - name: Bump README version text
-        if: github.ref_type == 'tag'
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Only touch the version badge line to avoid collateral matches.
-          sed -i -E "3s/(— (نسخه|Version) )[0-9][0-9A-Za-z.\-]*/\1$VERSION/" README.md
-          sed -i -E "3s/(— (نسخه|Version) )[0-9][0-9A-Za-z.\-]*/\1$VERSION/" README.en.md
-          git config user.name "NimaHp"
-          git config user.email "12736825+NimaHp@users.noreply.github.com"
-          git add README.md README.en.md
-          if git diff --cached --quiet; then
-            echo "README already current ($VERSION); nothing to commit."
-          else
-            git commit -m "docs: bump README version text to $VERSION"
-            git push origin HEAD:main || echo "::warning::README bump not pushed (main moved since tag?)"
-          fi

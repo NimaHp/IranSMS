@@ -295,12 +295,25 @@ dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net10
 dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.0
 ```
 
-شامل ۱۵۰ تست پاس‌شده (<span dir="ltr">xunit v3</span> + <span dir="ltr">FluentAssertions</span>).
+شامل ۲۲۲ تست پاس‌شده (<span dir="ltr">xunit v3</span> + <span dir="ltr">FluentAssertions</span>).
 
 ## فرآیند CI/CD
 
 * **گردش کار <span dir="ltr">build.yml</span>:** اجرا و اعتبارسنجی تست‌ها در هر <span dir="ltr">push</span> و <span dir="ltr">pull_request</span>
-* **گردش کار <span dir="ltr">release.yml</span>:** انتشار خودکار پکیج‌ها در <span dir="ltr">NuGet.org</span> و ایجاد <span dir="ltr">GitHub Release</span> هنگام ثبت تگ‌های <span dir="ltr">v*</span>
+* **گردش کار <span dir="ltr">release.yml</span>:** انتشار packageها در <span dir="ltr">GitHub Packages</span> و ایجاد <span dir="ltr">GitHub Release</span> هنگام ثبت تگ‌های <span dir="ltr">v*</span>. انتشار به <span dir="ltr">NuGet.org</span> فعلاً فعال نیست.
+
+## انتشار GitHub و NuGet
+
+1. نسخه را در <span dir="ltr">Directory.Build.props</span> و <span dir="ltr">README</span>ها به‌روزرسانی کنید.
+2. تغییرات را commit کنید و سپس یک تگ نسخه بسازید:
+
+   ```bash
+   git tag -a v0.2.0-beta.1 -m "Release v0.2.0-beta.1"
+   git push origin v0.2.0-beta.1
+   ```
+
+3. workflow <span dir="ltr">release.yml</span> را بررسی کنید؛ packageهای <span dir="ltr">nupkg</span> و <span dir="ltr">snupkg</span> را در <span dir="ltr">GitHub Packages</span> و <span dir="ltr">GitHub Release</span> منتشر می‌کند.
+4. <span dir="ltr">NuGet.org</span> فعلاً در workflow فعال نیست؛ پس از پیکربندی <span dir="ltr">NuGet Trusted Publishing</span> باید مسیر جداگانهٔ آن اضافه شود.
 
 ## مجوز (License)
 

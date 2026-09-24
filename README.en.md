@@ -222,7 +222,20 @@ dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.
 ## CI/CD Pipeline
 
 * **build.yml Workflow:** Builds and executes test suites on every push and `pull_request`.
-* **release.yml Workflow:** Automatically publishes packages to `NuGet.org` and creates a `GitHub Release` on `v*` tags.
+* **release.yml Workflow:** Publishes packages to GitHub Packages and creates a GitHub Release for `v*` tags. NuGet.org is not enabled yet.
+
+## GitHub and NuGet Release
+
+1. Update the version in `Directory.Build.props` and both `README` files.
+2. Commit the changes and create a version tag:
+
+   ```bash
+   git tag -a v0.2.0-beta.1 -m "Release v0.2.0-beta.1"
+   git push origin v0.2.0-beta.1
+   ```
+
+3. Review the `release.yml` workflow; it publishes the `nupkg` and `snupkg` files to GitHub Packages and GitHub Release.
+4. NuGet.org is not enabled yet; add a separate NuGet Trusted Publishing step after it is configured.
 
 ## License
 
