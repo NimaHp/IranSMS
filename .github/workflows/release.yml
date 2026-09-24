@@ -65,11 +65,29 @@ jobs:
         if: github.ref_type == 'tag'
         run: dotnet nuget push 'artifacts/*.nupkg' --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
 
+      - name: Prepare release notes
+        run: |
+          set -euo pipefail
+          grep -Fq "## $VERSION " CHANGELOG.md
+          grep -Fq "## $VERSION " CHANGELOG.en.md
+          {
+            echo "## IranSMS $VERSION"
+            echo
+            echo "### فارسی"
+            echo
+            awk -v version="$VERSION" 'index($0, "## " version " ") == 1 { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md
+            echo
+            echo "### English"
+            echo
+            awk -v version="$VERSION" 'index($0, "## " version " ") == 1 { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.en.md
+          } > release-notes.md
+          test -s release-notes.md
+
       - name: Create GitHub Release
         if: github.ref_type == 'tag'
         run: |
           set -euo pipefail
-          release_flags=(--generate-notes --verify-tag)
+          release_flags=(--notes-file release-notes.md --verify-tag)
           if [[ "$VERSION" == *-* ]]; then
             release_flags+=(--prerelease)
           fi
