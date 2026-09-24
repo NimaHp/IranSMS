@@ -1,6 +1,6 @@
 ﻿# IranSMS
 
-**یکپارچه‌سازی سامانه‌های پیامکی ایران در `.NET`** — نسخه `0.2.0-beta.1`
+**یکپارچه‌سازی سامانه‌های پیامکی ایران در `.NET`** — نسخه `0.2.0-beta.2`
 
 [![Build](https://github.com/NimaHp/IranSMS/actions/workflows/build.yml/badge.svg)](https://github.com/NimaHp/IranSMS/actions)
 [![License](https://img.shields.io/github/license/NimaHp/IranSMS)](LICENSE)
@@ -308,8 +308,8 @@ dotnet run --project tests/IranSms.Tests -c Release --no-build --framework net8.
 2. تغییرات را commit کنید و سپس یک تگ نسخه بسازید:
 
    ```bash
-   git tag -a v0.2.0-beta.1 -m "Release v0.2.0-beta.1"
-   git push origin v0.2.0-beta.1
+   git tag -a v0.2.0-beta.2 -m "Release v0.2.0-beta.2"
+   git push origin v0.2.0-beta.2
    ```
 
 3. workflow <span dir="ltr">release.yml</span> را بررسی کنید؛ packageهای <span dir="ltr">nupkg</span> و <span dir="ltr">snupkg</span> را در <span dir="ltr">GitHub Packages</span> و <span dir="ltr">GitHub Release</span> منتشر می‌کند.

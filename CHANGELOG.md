@@ -1,10 +1,18 @@
-﻿﻿# تغییرات (Changelog)
+﻿# تغییرات (Changelog)
 
 **فارسی** | [English](CHANGELOG.en.md)
 
 این سند از [Keep a Changelog](https://keepachangelog.com/fa/1.1.0/) و سیستم نسخه‌گذاری [SemVer](https://semver.org/lang/fa/) پیروی می‌کند.
 
 ## [Unreleased]
+
+## 0.2.0-beta.2 — 2026-09-24
+
+* اصلاح پاسخ‌های رسمی providerها در Ghasedak، Melipayamak، SMS.ir و Kavenegar و افزودن validation برای partial failure و ورودی‌های نامعتبر.
+* سخت‌سازی transportها با timeout و redirect کنترل‌شده، محدودیت اندازهٔ پاسخ، حذف raw body از پیام exception و تست‌های transport.
+* محافظت از نمونهٔ ASP.NET Core با API key، rate limit و exception handling عمومی؛ افزودن قابلیت `SenderLines` با حفظ alias سازگاری.
+* فعال‌سازی `packages.lock.json`، `RepositoryCommit`، SourceLink و انتشار packageها در GitHub Packages از طریق `release.yml`.
+* تعداد تست‌ها به ۲۲۲ رسید؛ build، تست net8/net10، formatter و package validation با موفقیت اجرا شدند.
 
 ## 0.2.0-beta.1 — 2026-09-09
 

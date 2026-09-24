@@ -6,6 +6,14 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+## 0.2.0-beta.2 — 2026-09-24
+
+* Fixed official provider response handling for Ghasedak, Melipayamak, SMS.ir, and Kavenegar, including partial failures and invalid input validation.
+* Hardened transports with controlled timeout and redirect behavior, bounded response sizes, redacted exception messages, and transport tests.
+* Protected the ASP.NET Core sample with an API key, rate limiting, and generic production error handling; added `SenderLines` with a compatibility alias.
+* Enabled `packages.lock.json`, `RepositoryCommit`, SourceLink, and GitHub Packages publishing through `release.yml`.
+* Increased the test suite to 222 tests; build, net8/net10 tests, formatting, and package validation completed successfully.
+
 ## 0.2.0-beta.1 — 2026-09-09
 
 * Added — Account info (`ISmsAccountInfo`): `GetBalanceAsync` and `GetSenderLinesAsync` with `AccountBalanceResult` for Kavenegar, Ghasedak, SMS.ir and Melipayamak + Mock, per each provider's official docs; enabled by `SmsCapabilities.AccountInfo` and `LineManagement`.

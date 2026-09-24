@@ -39,7 +39,7 @@
   <PropertyGroup>
     <Authors>IranSms Contributors</Authors>
     <VersionPrefix>0.2.0</VersionPrefix>
-    <VersionSuffix>beta.1</VersionSuffix>
+    <VersionSuffix>beta.2</VersionSuffix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/NimaHp/IranSMS</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
