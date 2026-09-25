@@ -61,15 +61,14 @@ namespace IranSms.Providers.SmsIr
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
-            ValidateRecipient(recipient);
-            ValidateMessage(message);
-            ValidateSenderLine(senderLine);
+            var text = SmsValidation.EnsureMessage(message);
+            var line = RequireSenderLine(senderLine, nameof(senderLine));
 
             var request = new SmsIrBulkSendRequest
             {
-                LineNumber = ParseLineNumber(senderLine!),
-                MessageText = message,
-                Mobiles = new[] { recipient.Trim() },
+                LineNumber = ParseLineNumber(line),
+                MessageText = text,
+                Mobiles = new[] { RequireRecipient(recipient, nameof(recipient)) },
             };
 
             var data = await PostCoreAsync(SendBulkPath, request, cancellationToken).ConfigureAwait(false);
@@ -85,8 +84,8 @@ namespace IranSms.Providers.SmsIr
         {
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
-            ValidateMessage(message);
-            ValidateSenderLine(senderLine);
+            var text = SmsValidation.EnsureMessage(message);
+            var line = RequireSenderLine(senderLine, nameof(senderLine));
 
             var list = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxBulkRecipients);
             if (list.Count == 0)
@@ -95,15 +94,12 @@ namespace IranSms.Providers.SmsIr
                 throw new ArgumentException($"SMS.ir accepts at most {MaxBulkRecipients} recipients per call.", nameof(recipients));
             var normalizedRecipients = new string[list.Count];
             for (var i = 0; i < list.Count; i++)
-            {
-                ValidateRecipient(list[i]);
-                normalizedRecipients[i] = list[i].Trim();
-            }
+                normalizedRecipients[i] = RequireRecipient(list[i], nameof(recipients));
 
             var request = new SmsIrBulkSendRequest
             {
-                LineNumber = ParseLineNumber(senderLine!),
-                MessageText = message,
+                LineNumber = ParseLineNumber(line),
+                MessageText = text,
                 Mobiles = normalizedRecipients,
             };
 
@@ -117,11 +113,12 @@ namespace IranSms.Providers.SmsIr
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
-            ValidateRecipient(recipient);
+            var mobile = RequireRecipient(recipient, nameof(recipient));
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
             if (request.SendDate.HasValue)
                 throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
+            SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
 
             var templateIdText = request.TemplateId;
             if (string.IsNullOrWhiteSpace(templateIdText))
@@ -158,7 +155,7 @@ namespace IranSms.Providers.SmsIr
 
             var payload = new SmsIrVerifyRequest
             {
-                Mobile = recipient.Trim(),
+                Mobile = mobile,
                 TemplateId = templateId,
                 Parameters = parameters.ToArray(),
             };
@@ -390,26 +387,16 @@ namespace IranSms.Providers.SmsIr
             return list;
         }
 
-        private static void ValidateRecipient(string recipient)
-        {
-            if (recipient is null)
-                throw new ArgumentNullException(nameof(recipient));
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
-        }
+        private static string RequireRecipient(string recipient, string parameterName)
+            => SmsValidation.EnsureRecipient(recipient, parameterName);
 
-        private static void ValidateMessage(string message)
+        private static string RequireSenderLine(string? senderLine, string parameterName)
         {
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
-            if (string.IsNullOrWhiteSpace(message))
-                throw new ArgumentException("Message is required.", nameof(message));
-        }
+            var line = SmsValidation.EnsureSenderLine(senderLine, parameterName);
+            if (line is null)
+                throw new ArgumentException("SMS.ir requires a sender line (lineNumber) for send.", parameterName);
 
-        private static void ValidateSenderLine(string? senderLine)
-        {
-            if (string.IsNullOrWhiteSpace(senderLine))
-                throw new ArgumentException("SMS.ir requires a sender line (lineNumber) for send.", nameof(senderLine));
+            return line;
         }
 
         /// <inheritdoc />

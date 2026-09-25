@@ -57,7 +57,7 @@ catch (IranSmsException ex) when (ex.IsTransient)
 
 ## Input validation
 
-`SmsValidation` normalizes inputs identically for every provider: trims, transliterates Persian (`۰-۹`) and Arabic-Indic (`٠-٩`) digits to ASCII, and strips spacing/formatting characters. Country prefixes are preserved exactly as written (`+98…`, `0098…`, `09…`).
+`SmsValidation` normalizes inputs identically for every provider: trims, transliterates Persian (`۰-۹`) and Arabic-Indic (`٠-٩`) digits to ASCII, and strips spacing/formatting characters. Country prefixes are preserved exactly as written (`+98…`, `0098…`, `09…`). All five clients (Kavenegar, Ghasedak, SMS.ir, Melipayamak, Mock) run it before every send, so `SendAsync("۰۹۱۲ ۰۰۰۰۰۰۰", …)` and `SendAsync("09120000000", …)` reach the provider as the same string. Blank messages and whitespace-only sender lines are rejected before any network call.
 
 ## Batch results
 

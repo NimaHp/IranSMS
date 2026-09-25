@@ -8,6 +8,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 * Normalized errors: added `SmsErrorKind`, `SmsErrorKindExtensions.IsTransient`, and `IranSmsException.Kind`/`Operation`/`IsTransient` plus the `ProviderRejected`, `RateLimited` and `MalformedResponse` factories.
 * Consistent validation: added `SmsValidation` with `EnsureRecipient`, `NormalizeRecipient` (Persian/Arabic digit transliteration), `EnsureMessage`, `EnsureSenderLine` and `EnsureClientReferenceId`.
+* Wired `SmsValidation` into all 5 clients (Kavenegar, Ghasedak, SMS.ir, Melipayamak and Mock): numbers are normalized identically before sending (Persian/Arabic digits to ASCII, spacing/dashes/parentheses removed), blank messages and whitespace-only sender lines are rejected, sender lines are trimmed, and Mock now echoes `OtpSendResult.ClientReferenceId`.
 * Per-recipient batch results: added `SmsSendItemResult` and `SmsBulkSendResult` with success/failure counters and `IsPartialFailure`, `AllSucceeded`, `AllFailed` flags.
 * Delivery state classification: added `MessageDeliveryStateExtensions` with `IsFinal`, `IsSuccessful`, `IsFailure` and `IsPending`.
 * Client references: added `OtpRequest.ClientReferenceId`, `OtpSendResult.ClientReferenceId` and the `MessageIdentifier.ForProviderMessageId`/`ForClientReferenceId` factories.

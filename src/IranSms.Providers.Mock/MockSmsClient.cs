@@ -84,19 +84,18 @@ namespace IranSms.Providers.Mock
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
+            var target = SmsValidation.EnsureRecipient(recipient);
+            var text = SmsValidation.EnsureMessage(message);
+            var line = SmsValidation.EnsureSenderLine(senderLine);
 
             cancellationToken.ThrowIfCancellationRequested();
 
             var id = NextId();
             var entry = new MockMessage(
                 id,
-                recipient,
-                message,
-                senderLine,
+                target,
+                text,
+                line,
                 MessageDeliveryState.Delivered,
                 null,
                 DateTimeOffset.UtcNow);
@@ -119,8 +118,8 @@ namespace IranSms.Providers.Mock
         {
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
+            var text = SmsValidation.EnsureMessage(message);
+            var line = SmsValidation.EnsureSenderLine(senderLine);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -129,11 +128,9 @@ namespace IranSms.Providers.Mock
                 throw new ArgumentException("At least one recipient is required.", nameof(recipients));
             if (list.Count > MaxBulkRecipients)
                 throw new ArgumentException($"Mock bulk send supports at most {MaxBulkRecipients} recipients (parity with Kavenegar).", nameof(recipients));
-            foreach (var recipient in list)
-            {
-                if (string.IsNullOrWhiteSpace(recipient))
-                    throw new ArgumentException("Recipients cannot contain null or whitespace values.", nameof(recipients));
-            }
+            var normalizedRecipients = new string[list.Count];
+            for (var i = 0; i < list.Count; i++)
+                normalizedRecipients[i] = SmsValidation.EnsureRecipient(list[i], nameof(recipients));
 
             var ids = new string[list.Count];
             lock (_lock)
@@ -144,9 +141,9 @@ namespace IranSms.Providers.Mock
                     ids[i] = NextIdLocked();
                     _messages.Add(new MockMessage(
                         ids[i],
-                        list[i],
-                        message,
-                        senderLine,
+                        normalizedRecipients[i],
+                        text,
+                        line,
                         MessageDeliveryState.Queued,
                         null,
                         DateTimeOffset.UtcNow));
@@ -162,12 +159,12 @@ namespace IranSms.Providers.Mock
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
+            var target = SmsValidation.EnsureRecipient(recipient);
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
             if (request.SendDate.HasValue)
                 throw new NotSupportedException("Mock does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
+            var clientReferenceId = SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -178,9 +175,9 @@ namespace IranSms.Providers.Mock
             var id = NextId();
             var entry = new MockMessage(
                 id,
-                recipient,
+                target,
                 code,
-                request.SenderLine,
+                SmsValidation.EnsureSenderLine(request.SenderLine, nameof(request)),
                 MessageDeliveryState.Delivered,
                 request.TemplateId,
                 DateTimeOffset.UtcNow);
@@ -191,7 +188,7 @@ namespace IranSms.Providers.Mock
                 _messages.Add(entry);
             }
 
-            return Task.FromResult(new OtpSendResult(id));
+            return Task.FromResult(new OtpSendResult(id) { ClientReferenceId = clientReferenceId });
         }
 
         /// <inheritdoc />

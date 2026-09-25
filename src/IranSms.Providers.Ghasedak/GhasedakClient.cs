@@ -62,22 +62,18 @@ namespace IranSms.Providers.Ghasedak
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
-            if (recipient is null)
-                throw new ArgumentNullException(nameof(recipient));
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
-            if (message.Length > MaxMessageLength)
+            var text = SmsValidation.EnsureMessage(message);
+            if (text.Length > MaxMessageLength)
                 throw new ArgumentException($"Ghasedak messages are limited to {MaxMessageLength} characters.", nameof(message));
 
             var body = new Dictionary<string, object>
             {
-                ["message"] = message,
-                ["receptor"] = recipient.Trim(),
+                ["message"] = text,
+                ["receptor"] = SmsValidation.EnsureRecipient(recipient),
             };
-            if (senderLine != null)
-                body["lineNumber"] = senderLine;
+            var line = SmsValidation.EnsureSenderLine(senderLine);
+            if (line != null)
+                body["lineNumber"] = line;
 
             var json = JsonSerializer.Serialize(body);
             var raw = await _transport.PostJsonAsync(SendSinglePath, json, cancellationToken).ConfigureAwait(false);
@@ -98,8 +94,8 @@ namespace IranSms.Providers.Ghasedak
         {
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
+            var text = SmsValidation.EnsureMessage(message);
+            var line = SmsValidation.EnsureSenderLine(senderLine);
 
             var source = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxBulkRecipients);
             if (source.Count == 0)
@@ -109,21 +105,17 @@ namespace IranSms.Providers.Ghasedak
 
             var list = new string[source.Count];
             for (var i = 0; i < source.Count; i++)
-            {
-                if (string.IsNullOrWhiteSpace(source[i]))
-                    throw new ArgumentException("Recipients cannot contain null or whitespace values.", nameof(recipients));
-                list[i] = source[i].Trim();
-            }
-            if (message.Length > MaxMessageLength)
+                list[i] = SmsValidation.EnsureRecipient(source[i], nameof(recipients));
+            if (text.Length > MaxMessageLength)
                 throw new ArgumentException($"Ghasedak messages are limited to {MaxMessageLength} characters.", nameof(message));
 
             var body = new Dictionary<string, object>
             {
-                ["message"] = message,
+                ["message"] = text,
                 ["receptors"] = list,
             };
-            if (senderLine != null)
-                body["lineNumber"] = senderLine;
+            if (line != null)
+                body["lineNumber"] = line;
 
             var json = JsonSerializer.Serialize(body);
             var raw = await _transport.PostJsonAsync(SendBulkPath, json, cancellationToken).ConfigureAwait(false);
@@ -144,14 +136,13 @@ namespace IranSms.Providers.Ghasedak
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (recipient is null)
-                throw new ArgumentNullException(nameof(recipient));
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
+            var receptor = SmsValidation.EnsureRecipient(recipient);
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
             if (request.SendDate.HasValue)
                 throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
+            SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
+            SmsValidation.EnsureSenderLine(request.SenderLine, nameof(request));
 
             if (string.IsNullOrWhiteSpace(request.TemplateId))
                 throw new ArgumentException("Ghasedak OTP requires a TemplateId (template name).", nameof(request));
@@ -180,7 +171,7 @@ namespace IranSms.Providers.Ghasedak
                 ["templateName"] = request.TemplateId!,
                 ["receptors"] = new[]
                 {
-                    new { mobile = recipient.Trim() },
+                    new { mobile = receptor },
                 },
             };
             for (var i = 1; i <= 10; i++)

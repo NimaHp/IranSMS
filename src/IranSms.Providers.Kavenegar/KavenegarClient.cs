@@ -61,17 +61,12 @@ namespace IranSms.Providers.Kavenegar
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
-
             var parameters = new Dictionary<string, string>
             {
-                ["receptor"] = recipient.Trim(),
-                ["message"] = message,
+                ["receptor"] = SmsValidation.EnsureRecipient(recipient),
+                ["message"] = SmsValidation.EnsureMessage(message),
             };
-            AddOptional(parameters, "sender", senderLine);
+            AddOptional(parameters, "sender", SmsValidation.EnsureSenderLine(senderLine));
 
             var entry = await SendCoreAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
             var messageId = RequireMessageId(entry, "Send");
@@ -90,8 +85,8 @@ namespace IranSms.Providers.Kavenegar
         {
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
+            var text = SmsValidation.EnsureMessage(message);
+            var line = SmsValidation.EnsureSenderLine(senderLine);
 
             var list = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxRecipients);
             if (list.Count == 0)
@@ -101,18 +96,14 @@ namespace IranSms.Providers.Kavenegar
 
             var normalizedRecipients = new string[list.Count];
             for (var i = 0; i < list.Count; i++)
-            {
-                if (string.IsNullOrWhiteSpace(list[i]))
-                    throw new ArgumentException("Recipients cannot contain null or whitespace values.", nameof(recipients));
-                normalizedRecipients[i] = list[i].Trim();
-            }
+                normalizedRecipients[i] = SmsValidation.EnsureRecipient(list[i], nameof(recipients));
 
             var parameters = new Dictionary<string, string>
             {
                 ["receptor"] = string.Join(",", normalizedRecipients),
-                ["message"] = message,
+                ["message"] = text,
             };
-            AddOptional(parameters, "sender", senderLine);
+            AddOptional(parameters, "sender", line);
 
             var entries = await SendCoreMultiAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
 
@@ -137,12 +128,12 @@ namespace IranSms.Providers.Kavenegar
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
+            var receptor = SmsValidation.EnsureRecipient(recipient);
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
             if (request.SendDate.HasValue)
                 throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
+            SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
 
             var templateName = request.TemplateId;
             if (string.IsNullOrWhiteSpace(templateName))
@@ -150,7 +141,7 @@ namespace IranSms.Providers.Kavenegar
 
             var parameters = new Dictionary<string, string>
             {
-                ["receptor"] = recipient.Trim(),
+                ["receptor"] = receptor,
                 ["template"] = templateName!,
             };
 
@@ -179,7 +170,7 @@ namespace IranSms.Providers.Kavenegar
             }
 
             if (request.SenderLine is not null)
-                AddOptional(parameters, "sender", request.SenderLine);
+                AddOptional(parameters, "sender", SmsValidation.EnsureSenderLine(request.SenderLine, nameof(request)));
 
             var entry = await SendCoreAsync(VerifyPath, parameters, cancellationToken).ConfigureAwait(false);
             return new OtpSendResult(RequireMessageId(entry, "Lookup"))

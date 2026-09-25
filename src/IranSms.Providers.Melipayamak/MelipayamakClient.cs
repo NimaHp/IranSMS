@@ -72,17 +72,16 @@ namespace IranSms.Providers.Melipayamak
             string? senderLine = null,
             CancellationToken cancellationToken = default)
         {
-            ValidateRecipient(recipient);
-            ValidateMessage(message);
-            ValidateSenderLine(senderLine);
+            var text = SmsValidation.EnsureMessage(message);
+            var line = RequireSenderLine(senderLine, nameof(senderLine));
 
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
                 ["password"] = _password,
-                ["from"] = senderLine!,
-                ["to"] = recipient.Trim(),
-                ["text"] = message,
+                ["from"] = line,
+                ["to"] = RequireRecipient(recipient, nameof(recipient)),
+                ["text"] = text,
             };
 
             var body = await _transport.PostFormAsync(SendPath, form, cancellationToken).ConfigureAwait(false);
@@ -99,8 +98,8 @@ namespace IranSms.Providers.Melipayamak
             if (recipients is null)
                 throw new ArgumentNullException(nameof(recipients));
 
-            ValidateMessage(message);
-            ValidateSenderLine(senderLine);
+            var text = SmsValidation.EnsureMessage(message);
+            var line = RequireSenderLine(senderLine, nameof(senderLine));
 
             var list = recipients as IReadOnlyList<string> ?? MaterializeRecipients(recipients, MaxBulkRecipients);
             if (list.Count == 0)
@@ -109,18 +108,15 @@ namespace IranSms.Providers.Melipayamak
                 throw new ArgumentException($"Melipayamak accepts at most {MaxBulkRecipients} recipients per call.", nameof(recipients));
             var normalizedRecipients = new string[list.Count];
             for (var i = 0; i < list.Count; i++)
-            {
-                ValidateRecipient(list[i]);
-                normalizedRecipients[i] = list[i].Trim();
-            }
+                normalizedRecipients[i] = RequireRecipient(list[i], nameof(recipients));
 
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
                 ["password"] = _password,
-                ["from"] = senderLine!,
+                ["from"] = line,
                 ["to"] = string.Join(",", normalizedRecipients),
-                ["text"] = message,
+                ["text"] = text,
             };
 
             var response = await _transport.PostFormAsync(SendPath, form, cancellationToken).ConfigureAwait(false);
@@ -133,7 +129,7 @@ namespace IranSms.Providers.Melipayamak
             OtpRequest request,
             CancellationToken cancellationToken = default)
         {
-            ValidateRecipient(recipient);
+            var to = RequireRecipient(recipient, nameof(recipient));
             if (request is null)
                 throw new ArgumentNullException(nameof(request));
 
@@ -145,14 +141,15 @@ namespace IranSms.Providers.Melipayamak
                 code <= 0)
                 throw new ArgumentException("Melipayamak OTP requires a positive integer Code.", nameof(request));
 
-            ValidateSenderLine(request.SenderLine);
+            SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
+            var from = RequireSenderLine(request.SenderLine, nameof(request));
 
             var form = new Dictionary<string, string>
             {
                 ["username"] = _username,
                 ["password"] = _password,
-                ["from"] = request.SenderLine!,
-                ["to"] = recipient.Trim(),
+                ["from"] = from,
+                ["to"] = to,
                 ["code"] = request.Code!,
             };
 
@@ -328,26 +325,16 @@ namespace IranSms.Providers.Melipayamak
             return list;
         }
 
-        private static void ValidateRecipient(string recipient)
-        {
-            if (recipient is null)
-                throw new ArgumentNullException(nameof(recipient));
-            if (string.IsNullOrWhiteSpace(recipient))
-                throw new ArgumentException("Recipient is required.", nameof(recipient));
-        }
+        private static string RequireRecipient(string recipient, string parameterName)
+            => SmsValidation.EnsureRecipient(recipient, parameterName);
 
-        private static void ValidateMessage(string message)
+        private static string RequireSenderLine(string? senderLine, string parameterName)
         {
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
-            if (string.IsNullOrWhiteSpace(message))
-                throw new ArgumentException("Message is required.", nameof(message));
-        }
+            var line = SmsValidation.EnsureSenderLine(senderLine, parameterName);
+            if (line is null)
+                throw new ArgumentException("Melipayamak requires a sender line ('from').", parameterName);
 
-        private static void ValidateSenderLine(string? senderLine)
-        {
-            if (string.IsNullOrWhiteSpace(senderLine))
-                throw new ArgumentException("Melipayamak requires a sender line ('from').", nameof(senderLine));
+            return line;
         }
 
         /// <inheritdoc />
