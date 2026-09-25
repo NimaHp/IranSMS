@@ -37,4 +37,18 @@ public class OtpRequestTests
         var req = new OtpRequest { Code = "1", SendDate = when };
         req.SendDate.Should().Be(when);
     }
+
+    [Fact]
+    public void SupportsClientReferenceId()
+    {
+        var req = new OtpRequest { Code = "1", ClientReferenceId = "order-42" };
+        req.ClientReferenceId.Should().Be("order-42");
+    }
+
+    [Fact]
+    public void ClientReferenceId_IsOptional()
+    {
+        var req = new OtpRequest { Code = "1" };
+        req.ClientReferenceId.Should().BeNull();
+    }
 }

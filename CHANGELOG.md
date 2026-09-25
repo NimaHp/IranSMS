@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+* خطاهای نرمال‌شده: افزودن `SmsErrorKind` و `SmsErrorKindExtensions.IsTransient` و `IranSmsException.Kind`/`Operation`/`IsTransient` به‌همراه factoryهای `ProviderRejected`، `RateLimited` و `MalformedResponse`.
+* اعتبارسنجی یکدست: افزودن `SmsValidation` با `EnsureRecipient`، `NormalizeRecipient` (ترنسلیتریشن ارقام فارسی/عربی)، `EnsureMessage`، `EnsureSenderLine` و `EnsureClientReferenceId`.
+* نتیجهٔ هر گیرنده در ارسال گروهی: افزودن `SmsSendItemResult` و `SmsBulkSendResult` با شمارش موفق/ناموفق و تشخیص `IsPartialFailure`، `AllSucceeded` و `AllFailed`.
+* دسته‌بندی وضعیت تحویل: افزودن `MessageDeliveryStateExtensions` با `IsFinal`، `IsSuccessful`، `IsFailure` و `IsPending`.
+* ارجاع سمت کلاینت: افزودن `OtpRequest.ClientReferenceId`، `OtpSendResult.ClientReferenceId` و factoryهای `MessageIdentifier.ForProviderMessageId`/`ForClientReferenceId`.
+* مستندسازی رفتار این قابلیت‌ها در `IranSms.Core/README.md`؛ همهٔ تغییها additive و بدون شکستن API عمومی.
+* تعداد تست‌ها به ۲۷۳ رسید؛ build، تست net8/net10 و formatter با موفقیت اجرا شدند.
+
 ## 0.2.0-beta.2 — 2026-09-24
 
 * اصلاح پاسخ‌های رسمی providerها در Ghasedak، Melipayamak، SMS.ir و Kavenegar و افزودن validation برای partial failure و ورودی‌های نامعتبر.

@@ -1,10 +1,18 @@
-# Changelog
+﻿# Changelog
 
 **English** | [فارسی](CHANGELOG.md)
 
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+* Normalized errors: added `SmsErrorKind`, `SmsErrorKindExtensions.IsTransient`, and `IranSmsException.Kind`/`Operation`/`IsTransient` plus the `ProviderRejected`, `RateLimited` and `MalformedResponse` factories.
+* Consistent validation: added `SmsValidation` with `EnsureRecipient`, `NormalizeRecipient` (Persian/Arabic digit transliteration), `EnsureMessage`, `EnsureSenderLine` and `EnsureClientReferenceId`.
+* Per-recipient batch results: added `SmsSendItemResult` and `SmsBulkSendResult` with success/failure counters and `IsPartialFailure`, `AllSucceeded`, `AllFailed` flags.
+* Delivery state classification: added `MessageDeliveryStateExtensions` with `IsFinal`, `IsSuccessful`, `IsFailure` and `IsPending`.
+* Client references: added `OtpRequest.ClientReferenceId`, `OtpSendResult.ClientReferenceId` and the `MessageIdentifier.ForProviderMessageId`/`ForClientReferenceId` factories.
+* Documented the behaviour of these features in `IranSms.Core/README.md`; all changes are additive with no public API break.
+* Increased the test suite to 273 tests; build, net8/net10 tests and formatting completed successfully.
 
 ## 0.2.0-beta.2 — 2026-09-24
 

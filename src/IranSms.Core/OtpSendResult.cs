@@ -21,5 +21,12 @@ namespace IranSms
 
         /// <summary>Gets or sets the optional cost of the send (provider-specific currency/unit).</summary>
         public decimal? Cost { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client reference that was accepted by the provider, when the
+        /// provider supports client references. Null means the provider returned no
+        /// reference (or does not support them).
+        /// </summary>
+        public string? ClientReferenceId { get; set; }
     }
 }

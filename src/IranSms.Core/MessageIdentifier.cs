@@ -76,5 +76,23 @@ namespace IranSms
         /// <summary>Returns a string representation of this identifier (e.g. <c>ProviderMessageId:42</c>).</summary>
         /// <returns>The identifier value prefixed by its type.</returns>
         public override string ToString() => $"{Type}:{Value}";
+
+        /// <summary>
+        /// Creates an identifier for a provider-assigned message id.
+        /// </summary>
+        /// <param name="value">The provider message id.</param>
+        /// <returns>A <see cref="MessageIdentifier"/> of type <see cref="MessageIdentifierType.ProviderMessageId"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is null or whitespace.</exception>
+        public static MessageIdentifier ForProviderMessageId(string value)
+            => new MessageIdentifier(value, MessageIdentifierType.ProviderMessageId);
+
+        /// <summary>
+        /// Creates an identifier for a client-supplied reference (idempotency / correlation key).
+        /// </summary>
+        /// <param name="value">The client reference id.</param>
+        /// <returns>A <see cref="MessageIdentifier"/> of type <see cref="MessageIdentifierType.ClientReferenceId"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is null or whitespace.</exception>
+        public static MessageIdentifier ForClientReferenceId(string value)
+            => new MessageIdentifier(value, MessageIdentifierType.ClientReferenceId);
     }
 }

@@ -46,4 +46,26 @@ public class MessageIdentifierTests
         var b = new MessageIdentifier("abc", MessageIdentifierType.ProviderMessageId);
         a.Equals(b).Should().BeFalse();
     }
+
+    [Fact]
+    public void Factories_BuildExpectedType()
+    {
+        var provider = MessageIdentifier.ForProviderMessageId("42");
+        var client = MessageIdentifier.ForClientReferenceId("42");
+
+        provider.Type.Should().Be(MessageIdentifierType.ProviderMessageId);
+        provider.Value.Should().Be("42");
+        client.Type.Should().Be(MessageIdentifierType.ClientReferenceId);
+        client.Value.Should().Be("42");
+        provider.Should().NotBe(client);
+    }
+
+    [Fact]
+    public void Factories_RejectEmptyValues()
+    {
+        FluentActions.Invoking(() => MessageIdentifier.ForProviderMessageId(" "))
+            .Should().Throw<ArgumentException>();
+        FluentActions.Invoking(() => MessageIdentifier.ForClientReferenceId(" "))
+            .Should().Throw<ArgumentException>();
+    }
 }
