@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 * خطاهای نرمال‌شده: افزودن `SmsErrorKind` و `SmsErrorKindExtensions.IsTransient` و `IranSmsException.Kind`/`Operation`/`IsTransient` به‌همراه factoryهای `ProviderRejected`، `RateLimited` و `MalformedResponse`.
+* طبقه‌بندی خطا در providerها: هر ۴ transport و ۴ کلاینت اکنون روی همهٔ خطاها `Kind` و `Operation` می‌گذارند؛ نگاشت کدهای HTTP با `SmsErrorKindExtensions.FromHttpStatus` (۴۰۱/۴۰۳ → `Unauthorized`، ۴۰۲ → `InsufficientBalance`، ۴۰۸/۵۰۴ → `Timeout`، ۴۲۹ → `RateLimited`، ۵xx → `ProviderUnavailable` که transient است) و پاسخ‌های نامفهوم با `MalformedResponse` گزارش می‌شوند.
 * اعتبارسنجی یکدست: افزودن `SmsValidation` با `EnsureRecipient`، `NormalizeRecipient` (ترنسلیتریشن ارقام فارسی/عربی)، `EnsureMessage`، `EnsureSenderLine` و `EnsureClientReferenceId`.
 * اتصال `SmsValidation` به هر ۵ کلاینت (Kavenegar، Ghasedak، SMS.ir، Melipayamak و Mock): شماره‌ها قبل از ارسال یکسان نرمال می‌شوند (ارقام فارسی/عربی به ASCII، حذف فاصله/خط تیره/پرانتز)، پیام blank و sender line فقط‌فاصله رد می‌شود و sender line trim می‌شود؛ در Mock مقدار `OtpSendResult.ClientReferenceId` برگردانده می‌شود.
 * نتیجهٔ هر گیرنده در ارسال گروهی: افزودن `SmsSendItemResult` و `SmsBulkSendResult` با شمارش موفق/ناموفق و تشخیص `IsPartialFailure`، `AllSucceeded` و `AllFailed`.

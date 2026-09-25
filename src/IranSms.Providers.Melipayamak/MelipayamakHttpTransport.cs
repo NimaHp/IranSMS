@@ -48,6 +48,7 @@ namespace IranSms.Providers.Melipayamak
                         throw new IranSmsException("Melipayamak response exceeded the maximum allowed size.")
                         {
                             ProviderName = "Melipayamak",
+                            Kind = SmsErrorKind.Transport,
                         };
                     var body = await ReadBodyAsync(response.Content, "Melipayamak").ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
@@ -57,6 +58,8 @@ namespace IranSms.Providers.Melipayamak
                         {
                             ProviderName = "Melipayamak",
                             ProviderStatusCode = (int)response.StatusCode,
+                            Kind = SmsErrorKindExtensions.FromHttpStatus((int)response.StatusCode),
+                            Operation = action,
                             RawResponseBody = body,
                         };
                     }
@@ -72,6 +75,7 @@ namespace IranSms.Providers.Melipayamak
                 throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
                 {
                     ProviderName = providerName,
+                    Kind = SmsErrorKind.Transport,
                 };
 
             using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -84,6 +88,7 @@ namespace IranSms.Providers.Melipayamak
                     throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
                     {
                         ProviderName = providerName,
+                        Kind = SmsErrorKind.Transport,
                     };
                 await memory.WriteAsync(buffer, 0, read).ConfigureAwait(false);
             }

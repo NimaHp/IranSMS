@@ -231,6 +231,8 @@ namespace IranSms.Providers.Melipayamak
                     throw new IranSmsException("Melipayamak returned an unrecognized credit value.")
                     {
                         ProviderName = ProviderName,
+                        Kind = SmsErrorKind.MalformedResponse,
+                        Operation = GetCreditPath,
                         RawResponseBody = body,
                     };
             }
@@ -244,6 +246,8 @@ namespace IranSms.Providers.Melipayamak
             throw new IranSmsException("Melipayamak returned an unrecognized credit response.")
             {
                 ProviderName = ProviderName,
+                Kind = SmsErrorKind.MalformedResponse,
+                Operation = GetCreditPath,
                 RawResponseBody = body,
             };
         }

@@ -165,6 +165,8 @@ namespace IranSms.Providers.SmsIr
                 throw new IranSmsException("SMS.ir did not return a valid message id for verify.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = SendVerifyPath,
                 };
 
             return new OtpSendResult(data.MessageId.Value.ToString(CultureInfo.InvariantCulture))
@@ -223,12 +225,16 @@ namespace IranSms.Providers.SmsIr
                 {
                     ProviderName = ProviderName,
                     ProviderStatusCode = raw?.Status,
+                    Kind = raw is null ? SmsErrorKind.MalformedResponse : SmsErrorKind.ProviderRejected,
+                    Operation = CreditPath,
                     RawResponseBody = body,
                 };
             if (!raw.DataElement.HasValue)
                 throw new IranSmsException("SMS.ir returned an empty credit response.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = CreditPath,
                     RawResponseBody = body,
                 };
 
@@ -237,6 +243,8 @@ namespace IranSms.Providers.SmsIr
                 throw new IranSmsException("SMS.ir returned an invalid credit response.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = CreditPath,
                     RawResponseBody = body,
                 };
             return new AccountBalanceResult(creditVal.Value);
@@ -256,6 +264,8 @@ namespace IranSms.Providers.SmsIr
                     {
                         ProviderName = ProviderName,
                         ProviderStatusCode = raw?.Status,
+                        Kind = raw is null ? SmsErrorKind.MalformedResponse : SmsErrorKind.ProviderRejected,
+                        Operation = LinePath,
                         RawResponseBody = body,
                     };
                 if (raw.DataElement is null || raw.DataElement.Value.ValueKind != System.Text.Json.JsonValueKind.Array)
@@ -300,6 +310,8 @@ namespace IranSms.Providers.SmsIr
                 throw new IranSmsException("SMS.ir did not return a valid message id for the send.")
                 {
                     ProviderName = "SmsIr",
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = SendBulkPath,
                 };
 
             return new SmsSendResult(firstMessageId)
@@ -323,7 +335,7 @@ namespace IranSms.Providers.SmsIr
         {
             var json = SmsIrJson.Serialize(payload);
             var body = await _transport.PostJsonAsync(path, json, cancellationToken).ConfigureAwait(false);
-            return ParseBody<SmsIrBulkSendResult>(body);
+            return ParseBody<SmsIrBulkSendResult>(body, path);
         }
 
         private async Task<SmsIrVerifyResult> PostCoreAsync(
@@ -333,7 +345,7 @@ namespace IranSms.Providers.SmsIr
         {
             var json = SmsIrJson.Serialize(payload);
             var body = await _transport.PostJsonAsync(path, json, cancellationToken).ConfigureAwait(false);
-            return ParseBody<SmsIrVerifyResult>(body);
+            return ParseBody<SmsIrVerifyResult>(body, path);
         }
 
         private async Task<SmsIrSendStatusResult> GetCoreAsync(
@@ -341,10 +353,10 @@ namespace IranSms.Providers.SmsIr
             CancellationToken cancellationToken)
         {
             var body = await _transport.GetAsync(path, cancellationToken).ConfigureAwait(false);
-            return ParseBody<SmsIrSendStatusResult>(body);
+            return ParseBody<SmsIrSendStatusResult>(body, path);
         }
 
-        private static TData ParseBody<TData>(string body)
+        private static TData ParseBody<TData>(string body, string operation)
             where TData : class
         {
             var envelope = SmsIrJson.Deserialize<TData>(body);
@@ -352,27 +364,27 @@ namespace IranSms.Providers.SmsIr
             {
                 if (envelope is null)
                 {
-                    throw new IranSmsException("SMS.ir returned an unparseable envelope.")
-                    {
-                        ProviderName = "SmsIr",
-                        RawResponseBody = body,
-                    };
+                    throw IranSmsException.MalformedResponse(
+                        "SMS.ir returned an unparseable envelope.",
+                        providerName: "SmsIr",
+                        rawResponseBody: body,
+                        operation: operation);
                 }
 
-                throw new IranSmsException(
-                    $"SMS.ir API error ({envelope.Status}).")
-                {
-                    ProviderName = "SmsIr",
-                    ProviderStatusCode = envelope.Status,
-                    RawResponseBody = body,
-                };
+                var error = IranSmsException.ProviderRejected(
+                    $"SMS.ir API error ({envelope.Status}).",
+                    envelope.Status,
+                    "SmsIr",
+                    operation);
+                error.RawResponseBody = body;
+                throw error;
             }
 
-            return envelope.Data ?? throw new IranSmsException("SMS.ir API error: empty data payload.")
-            {
-                ProviderName = "SmsIr",
-                RawResponseBody = body,
-            };
+            return envelope.Data ?? throw IranSmsException.MalformedResponse(
+                "SMS.ir API error: empty data payload.",
+                providerName: "SmsIr",
+                rawResponseBody: body,
+                operation: operation);
         }
 
         private static List<string> MaterializeRecipients(IEnumerable<string> recipients, int max)

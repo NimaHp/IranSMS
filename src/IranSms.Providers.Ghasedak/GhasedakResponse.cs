@@ -13,25 +13,27 @@ namespace IranSms.Providers.Ghasedak
         /// Ensures the envelope reports success; otherwise throws
         /// <see cref="IranSmsException"/> with the provider message.
         /// </summary>
-        public static GhasedakEnvelope? EnsureSuccess(GhasedakEnvelope? envelope, string rawBody)
+        public static GhasedakEnvelope? EnsureSuccess(GhasedakEnvelope? envelope, string rawBody, string operation)
         {
             if (envelope == null)
             {
-                throw new IranSmsException("Ghasedak returned an unrecognized response.")
-                {
-                    ProviderName = "Ghasedak",
-                    RawResponseBody = rawBody,
-                };
+                throw IranSmsException.MalformedResponse(
+                    "Ghasedak returned an unrecognized response.",
+                    providerName: "Ghasedak",
+                    rawResponseBody: rawBody,
+                    operation: operation);
             }
 
             if (!envelope.IsSuccess || envelope.StatusCode != 200)
             {
-                throw new IranSmsException($"Ghasedak API error ({envelope.StatusCode}).")
-                {
-                    ProviderName = "Ghasedak",
-                    ProviderStatusCode = envelope.StatusCode,
-                    RawResponseBody = rawBody,
-                };
+                var error = IranSmsException.ProviderRejected(
+                    $"Ghasedak API error ({envelope.StatusCode}).",
+                    envelope.StatusCode,
+                    "Ghasedak",
+                    operation);
+                error.RawResponseBody = rawBody;
+                error.Kind = SmsErrorKindExtensions.FromHttpStatus(envelope.StatusCode);
+                throw error;
             }
 
             return envelope;

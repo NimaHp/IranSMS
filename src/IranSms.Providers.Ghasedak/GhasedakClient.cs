@@ -77,7 +77,7 @@ namespace IranSms.Providers.Ghasedak
 
             var json = JsonSerializer.Serialize(body);
             var raw = await _transport.PostJsonAsync(SendSinglePath, json, cancellationToken).ConfigureAwait(false);
-            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw, SendSinglePath);
 
             var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
             if (string.IsNullOrWhiteSpace(msgId))
@@ -119,7 +119,7 @@ namespace IranSms.Providers.Ghasedak
 
             var json = JsonSerializer.Serialize(body);
             var raw = await _transport.PostJsonAsync(SendBulkPath, json, cancellationToken).ConfigureAwait(false);
-            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw, SendBulkPath);
 
             var msgIds = envelope != null ? GhasedakResponse.GetDataItemStrings(envelope, "Receptors", "MessageId") : null;
             if (msgIds == null || msgIds.Length == 0)
@@ -182,7 +182,7 @@ namespace IranSms.Providers.Ghasedak
 
             var json = JsonSerializer.Serialize(body);
             var raw = await _transport.PostJsonAsync(SendOtpPath, json, cancellationToken).ConfigureAwait(false);
-            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw, SendOtpPath);
 
             var msgIds = envelope != null ? GhasedakResponse.GetDataItemStrings(envelope, "Items", "MessageId") : null;
             if (msgIds == null || msgIds.Length == 0)
@@ -218,12 +218,14 @@ namespace IranSms.Providers.Ghasedak
             };
 
             var raw = await _transport.GetAsync(CheckSmsStatusPath, query, cancellationToken).ConfigureAwait(false);
-            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw, CheckSmsStatusPath);
             if (envelope == null)
             {
                 throw new IranSmsException("Ghasedak returned an empty response for delivery status.")
                 {
                     ProviderName = "Ghasedak",
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = CheckSmsStatusPath,
                     RawResponseBody = raw,
                 };
             }
@@ -279,11 +281,13 @@ namespace IranSms.Providers.Ghasedak
         {
             // GET GetAccountInformation — https://ghasedak.me/docs (ApiKey header)
             var raw = await _transport.GetAsync(AccountInfoPath, new Dictionary<string, string>(), cancellationToken).ConfigureAwait(false);
-            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw, AccountInfoPath);
             if (envelope?.Data is null || envelope.Data.Value.ValueKind != JsonValueKind.Object)
                 throw new IranSmsException("Ghasedak did not return account information.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = AccountInfoPath,
                     RawResponseBody = raw,
                 };
 
@@ -358,6 +362,8 @@ namespace IranSms.Providers.Ghasedak
             => new IranSmsException($"Ghasedak did not return a MessageId for {operation}.")
             {
                 ProviderName = "Ghasedak",
+                Kind = SmsErrorKind.MalformedResponse,
+                Operation = operation,
                 RawResponseBody = raw,
             };
 
@@ -365,6 +371,8 @@ namespace IranSms.Providers.Ghasedak
             => new IranSmsException("Ghasedak did not return a valid Credit for GetAccountInformation.")
             {
                 ProviderName = "Ghasedak",
+                Kind = SmsErrorKind.MalformedResponse,
+                Operation = "GetAccountInformation",
                 RawResponseBody = raw,
             };
 
@@ -372,6 +380,7 @@ namespace IranSms.Providers.Ghasedak
             => new IranSmsException("Ghasedak returned a malformed response.")
             {
                 ProviderName = "Ghasedak",
+                Kind = SmsErrorKind.MalformedResponse,
                 RawResponseBody = raw,
             };
     }

@@ -52,6 +52,7 @@ namespace IranSms.Providers.Kavenegar
                         throw new IranSmsException("Kavenegar response exceeded the maximum allowed size.")
                         {
                             ProviderName = "Kavenegar",
+                            Kind = SmsErrorKind.Transport,
                         };
                     var body = await ReadBodyAsync(response.Content, "Kavenegar").ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
@@ -61,6 +62,8 @@ namespace IranSms.Providers.Kavenegar
                         {
                             ProviderName = "Kavenegar",
                             ProviderStatusCode = (int)response.StatusCode,
+                            Kind = SmsErrorKindExtensions.FromHttpStatus((int)response.StatusCode),
+                            Operation = method,
                             RawResponseBody = body,
                         };
                     }
@@ -80,6 +83,7 @@ namespace IranSms.Providers.Kavenegar
                     throw new IranSmsException("Kavenegar response exceeded the maximum allowed size.")
                     {
                         ProviderName = "Kavenegar",
+                        Kind = SmsErrorKind.Transport,
                     };
                 var body = await ReadBodyAsync(response.Content, "Kavenegar").ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
@@ -89,6 +93,8 @@ namespace IranSms.Providers.Kavenegar
                     {
                         ProviderName = "Kavenegar",
                         ProviderStatusCode = (int)response.StatusCode,
+                        Kind = SmsErrorKindExtensions.FromHttpStatus((int)response.StatusCode),
+                        Operation = method,
                         RawResponseBody = body,
                     };
                 }
@@ -115,6 +121,7 @@ namespace IranSms.Providers.Kavenegar
                 throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
                 {
                     ProviderName = providerName,
+                    Kind = SmsErrorKind.Transport,
                 };
 
             using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -127,6 +134,7 @@ namespace IranSms.Providers.Kavenegar
                     throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
                     {
                         ProviderName = providerName,
+                        Kind = SmsErrorKind.Transport,
                     };
                 await memory.WriteAsync(buffer, 0, read).ConfigureAwait(false);
             }

@@ -90,6 +90,7 @@ namespace IranSms.Providers.Melipayamak
             {
                 ProviderName = "Melipayamak",
                 ProviderStatusCode = (int)code,
+                Kind = SmsErrorKind.ProviderRejected,
                 RawResponseBody = body,
             };
         }
@@ -99,6 +100,7 @@ namespace IranSms.Providers.Melipayamak
             {
                 ProviderName = "Melipayamak",
                 ProviderStatusCode = (int)code,
+                Kind = SmsErrorKind.ProviderRejected,
                 RawResponseBody = body,
             };
 
@@ -106,6 +108,7 @@ namespace IranSms.Providers.Melipayamak
             => new IranSmsException("Melipayamak returned an unrecognized response.")
             {
                 ProviderName = "Melipayamak",
+                Kind = SmsErrorKind.MalformedResponse,
                 RawResponseBody = body,
             };
 

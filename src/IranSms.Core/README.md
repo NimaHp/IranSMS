@@ -49,11 +49,32 @@ try
 }
 catch (IranSmsException ex) when (ex.IsTransient)
 {
-    // RateLimited / Transport / Timeout only — safe to retry with backoff.
+    // RateLimited / Transport / Timeout / ProviderUnavailable only.
 }
 ```
 
 `SmsErrorKind.Cancelled` is never treated as transient: replaying a send without an idempotency key can duplicate messages.
+
+Every provider fills `Kind` and `Operation`, so failures are comparable across providers:
+
+```csharp
+catch (IranSmsException ex)
+{
+    if (ex.Kind == SmsErrorKind.InsufficientBalance) { /* top up the account */ }
+    log(ex.ProviderName, ex.Operation, ex.Kind, ex.ProviderStatusCode);
+}
+```
+
+| HTTP status reported by the provider | `SmsErrorKind` |
+| --- | --- |
+| 401, 403 | `Unauthorized` |
+| 402 | `InsufficientBalance` |
+| 408, 504 | `Timeout` |
+| 429 | `RateLimited` |
+| 5xx | `ProviderUnavailable` (transient) |
+| other 4xx | `ProviderRejected` |
+
+`Operation` holds the provider method/endpoint that failed (`sms/send`, `SendSingleSMS`, `send/bulk`, `account/info`, …) and never contains recipients, message text or credentials. Envelopes that cannot be parsed, or successful responses missing a message id, are reported as `MalformedResponse`.
 
 ## Input validation
 

@@ -111,6 +111,8 @@ namespace IranSms.Providers.Kavenegar
                 throw new IranSmsException("Kavenegar returned no message entries for SendBulk.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = "SendBulk",
                 };
 
             var ids = new string[entries.Count];
@@ -225,12 +227,14 @@ namespace IranSms.Providers.Kavenegar
         {
             // GET /v1/{api-key}/account/info.json — docs: https://kavenegar.com/rest.html#account-info
             var body = await _transport.GetAsync(AccountInfoPath, cancellationToken).ConfigureAwait(false);
-            var entries = ParseAccountEntries(body);
+            var entries = ParseAccountEntries(body, AccountInfoPath);
             var entry = entries.Count == 0 ? null : entries[0];
             if (entry is null)
                 throw new IranSmsException("Kavenegar did not return account info.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = AccountInfoPath,
                     RawResponseBody = body,
                 };
 
@@ -239,6 +243,8 @@ namespace IranSms.Providers.Kavenegar
                 throw new IranSmsException("Kavenegar did not return a valid account credit.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = AccountInfoPath,
                     RawResponseBody = body,
                 };
 
@@ -254,7 +260,7 @@ namespace IranSms.Providers.Kavenegar
         {
             // GET /v1/{api-key}/account/config.json — field defaultsender holds the default line.
             var body = await _transport.GetAsync(AccountConfigPath, cancellationToken).ConfigureAwait(false);
-            var entries = ParseAccountEntries(body);
+            var entries = ParseAccountEntries(body, AccountConfigPath);
             var entry = entries.Count == 0 ? null : entries[0];
             var sender = entry?.GetNullableString("defaultsender");
             if (string.IsNullOrWhiteSpace(sender))
@@ -262,7 +268,7 @@ namespace IranSms.Providers.Kavenegar
             return new[] { sender! };
         }
 
-        private List<KavenegarEntry> ParseAccountEntries(string body)
+        private List<KavenegarEntry> ParseAccountEntries(string body, string operation)
         {
             KavenegarEnvelope? envelope;
             try
@@ -271,26 +277,31 @@ namespace IranSms.Providers.Kavenegar
             }
             catch (Exception ex)
             {
-                throw new IranSmsException("Kavenegar returned a malformed response.", ex)
-                {
-                    ProviderName = ProviderName,
-                    RawResponseBody = body,
-                };
+                throw IranSmsException.MalformedResponse(
+                    "Kavenegar returned a malformed response.",
+                    ex,
+                    ProviderName,
+                    body,
+                    operation);
             }
 
             if (envelope is null || envelope.Return is null)
-                throw new IranSmsException("Kavenegar returned an empty envelope.")
-                {
-                    ProviderName = ProviderName,
-                    RawResponseBody = body,
-                };
+                throw IranSmsException.MalformedResponse(
+                    "Kavenegar returned an empty envelope.",
+                    providerName: ProviderName,
+                    rawResponseBody: body,
+                    operation: operation);
             if (envelope.Return.Status != 200)
-                throw new IranSmsException($"Kavenegar API error ({envelope.Return.Status}).")
-                {
-                    ProviderName = ProviderName,
-                    ProviderStatusCode = envelope.Return.Status,
-                    RawResponseBody = body,
-                };
+            {
+                var error = IranSmsException.ProviderRejected(
+                    $"Kavenegar API error ({envelope.Return.Status}).",
+                    envelope.Return.Status,
+                    ProviderName,
+                    operation);
+                error.RawResponseBody = body;
+                error.Kind = SmsErrorKindExtensions.FromHttpStatus(envelope.Return.Status);
+                throw error;
+            }
             return envelope.Entries ?? new List<KavenegarEntry>();
         }
 
@@ -304,6 +315,8 @@ namespace IranSms.Providers.Kavenegar
                 throw new IranSmsException($"Kavenegar returned no message entries for {method}.")
                 {
                     ProviderName = ProviderName,
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = method,
                 };
             return entries[0];
         }
@@ -322,31 +335,33 @@ namespace IranSms.Providers.Kavenegar
             }
             catch (Exception ex)
             {
-                throw new IranSmsException("Kavenegar returned a malformed response.", ex)
-                {
-                    ProviderName = ProviderName,
-                    RawResponseBody = body,
-                };
+                throw IranSmsException.MalformedResponse(
+                    "Kavenegar returned a malformed response.",
+                    ex,
+                    ProviderName,
+                    body,
+                    method);
             }
 
             if (envelope is null || envelope.Return is null)
             {
-                throw new IranSmsException("Kavenegar returned an empty envelope.")
-                {
-                    ProviderName = ProviderName,
-                    RawResponseBody = body,
-                };
+                throw IranSmsException.MalformedResponse(
+                    "Kavenegar returned an empty envelope.",
+                    providerName: ProviderName,
+                    rawResponseBody: body,
+                    operation: method);
             }
 
             if (envelope.Return.Status != 200)
             {
-                throw new IranSmsException(
-                    $"Kavenegar API error ({envelope.Return.Status}).")
-                {
-                    ProviderName = ProviderName,
-                    ProviderStatusCode = envelope.Return.Status,
-                    RawResponseBody = body,
-                };
+                var error = IranSmsException.ProviderRejected(
+                    $"Kavenegar API error ({envelope.Return.Status}).",
+                    envelope.Return.Status,
+                    ProviderName,
+                    method);
+                error.RawResponseBody = body;
+                error.Kind = SmsErrorKindExtensions.FromHttpStatus(envelope.Return.Status);
+                throw error;
             }
 
             return envelope.Entries ?? new List<KavenegarEntry>();
@@ -371,6 +386,8 @@ namespace IranSms.Providers.Kavenegar
                 throw new IranSmsException($"Kavenegar returned no message id for {operation}.")
                 {
                     ProviderName = "Kavenegar",
+                    Kind = SmsErrorKind.MalformedResponse,
+                    Operation = operation,
                 };
             return messageId;
         }

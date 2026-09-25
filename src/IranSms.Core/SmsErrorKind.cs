@@ -36,6 +36,9 @@ namespace IranSms
 
         /// <summary>The caller cancelled the request.</summary>
         Cancelled = 8,
+
+        /// <summary>The provider answered with a server-side error (HTTP 5xx) and is temporarily unavailable.</summary>
+        ProviderUnavailable = 9,
     }
 
     /// <summary>
@@ -49,7 +52,8 @@ namespace IranSms
         /// <param name="kind">The error classification.</param>
         /// <returns>
         /// <see langword="true"/> for <see cref="SmsErrorKind.RateLimited"/>,
-        /// <see cref="SmsErrorKind.Transport"/> and <see cref="SmsErrorKind.Timeout"/>.
+        /// <see cref="SmsErrorKind.Transport"/>, <see cref="SmsErrorKind.Timeout"/>
+        /// and <see cref="SmsErrorKind.ProviderUnavailable"/>.
         /// </returns>
         /// <remarks>
         /// <see cref="SmsErrorKind.Cancelled"/> is never transient here: cancellation is a
@@ -63,9 +67,38 @@ namespace IranSms
                 case SmsErrorKind.RateLimited:
                 case SmsErrorKind.Transport:
                 case SmsErrorKind.Timeout:
+                case SmsErrorKind.ProviderUnavailable:
                     return true;
                 default:
                     return false;
+            }
+        }
+
+        /// <summary>
+        /// Maps an HTTP status code to <see cref="SmsErrorKind"/>. Used by every transport
+        /// so identical status codes are classified identically across providers, and by
+        /// providers whose envelope status mirrors HTTP semantics.
+        /// </summary>
+        /// <param name="statusCode">HTTP status code reported by the provider.</param>
+        /// <returns>The normalized error category.</returns>
+        public static SmsErrorKind FromHttpStatus(int statusCode)
+        {
+            switch (statusCode)
+            {
+                case 401:
+                case 403:
+                    return SmsErrorKind.Unauthorized;
+                case 402:
+                    return SmsErrorKind.InsufficientBalance;
+                case 408:
+                case 504:
+                    return SmsErrorKind.Timeout;
+                case 429:
+                    return SmsErrorKind.RateLimited;
+                default:
+                    if (statusCode >= 500)
+                        return SmsErrorKind.ProviderUnavailable;
+                    return SmsErrorKind.ProviderRejected;
             }
         }
     }

@@ -73,6 +73,7 @@ namespace IranSms.Providers.SmsIr
                         throw new IranSmsException("SMS.ir response exceeded the maximum allowed size.")
                         {
                             ProviderName = "SmsIr",
+                            Kind = SmsErrorKind.Transport,
                         };
                     var body = await ReadBodyAsync(response.Content, "SmsIr").ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
@@ -82,6 +83,8 @@ namespace IranSms.Providers.SmsIr
                         {
                             ProviderName = "SmsIr",
                             ProviderStatusCode = (int)response.StatusCode,
+                            Kind = SmsErrorKindExtensions.FromHttpStatus((int)response.StatusCode),
+                            Operation = path,
                             RawResponseBody = body,
                         };
                     }
@@ -97,6 +100,7 @@ namespace IranSms.Providers.SmsIr
                 throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
                 {
                     ProviderName = providerName,
+                    Kind = SmsErrorKind.Transport,
                 };
 
             using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -109,6 +113,7 @@ namespace IranSms.Providers.SmsIr
                     throw new IranSmsException($"{providerName} response exceeded the maximum allowed size.")
                     {
                         ProviderName = providerName,
+                        Kind = SmsErrorKind.Transport,
                     };
                 await memory.WriteAsync(buffer, 0, read).ConfigureAwait(false);
             }
