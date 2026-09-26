@@ -198,24 +198,24 @@ public class ProviderValidationTests
         {
             ResponseBody = "{\"return\":{\"status\":200},\"entries\":[{\"messageid\":1}]}",
         };
-        await Kavenegar(kavenegar).SendOtpAsync(PersianRecipient, new OtpRequest { TemplateId = "tpl", Code = "12345" }, token);
+        await Kavenegar(kavenegar).SendOtpAsync(PersianRecipient, new OtpTemplateRequest("tpl").SetParameter("token", "12345"), token);
         kavenegar.LastParameters!["receptor"].Should().Be(ExpectedRecipient);
 
         var melipayamak = new FakeMelipayamakTransport { ResponseBody = "1" };
-        await Melipayamak(melipayamak).SendOtpAsync(PersianRecipient, new OtpRequest { Code = "12345", SenderLine = "100001" }, token);
+        await Melipayamak(melipayamak).SendOtpAsync(PersianRecipient, new OtpCodeRequest("12345") { SenderLine = "100001" }, token);
         melipayamak.LastForm!["to"].Should().Be(ExpectedRecipient);
 
         var mock = new MockSmsClient();
         var otpResult = await mock.SendOtpAsync(
             PersianRecipient,
-            new OtpRequest { Code = "12345", ClientReferenceId = " order-42 " },
+            new OtpCodeRequest("12345") { ClientReferenceId = " order-42 " },
             token);
         mock.Messages.Should().ContainSingle().Which.Recipient.Should().Be(ExpectedRecipient);
         otpResult.ClientReferenceId.Should().Be("order-42");
 
         await FluentActions.Awaiting(() => new MockSmsClient().SendOtpAsync(
                 ExpectedRecipient,
-                new OtpRequest { Code = "1", ClientReferenceId = "  " },
+                new OtpCodeRequest("1") { ClientReferenceId = "  " },
                 token))
             .Should().ThrowAsync<ArgumentException>();
     }

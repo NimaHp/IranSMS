@@ -31,6 +31,25 @@ var status = await (client as ISmsDeliveryReporter)!.GetMessageStatusAsync(
 
 Check capabilities with `client.Supports(flag)` or `(client.Capabilities & flag) == flag` — do not use `HasFlag` on `netstandard2.0`.
 
+## OTP requests
+
+`OtpRequest` is an abstract base with two concrete shapes, because a provider template and an OTP code are different things:
+
+| Request | When to use | Providers |
+| --- | --- | --- |
+| `OtpTemplateRequest` | the provider holds a pre-approved pattern and the library fills its placeholders | Kavenegar (`token`, `token2`, `token3`, `token10`, `token20`), Ghasedak (`param1`..`param10`), SMS.ir (arbitrary names, numeric template id) |
+| `OtpCodeRequest` | the provider owns the text and injects the code | Melipayamak (`SendOtp`) |
+
+```csharp
+// Kavenegar / Ghasedak / SMS.ir
+await otpSender.SendOtpAsync("09121234567", new OtpTemplateRequest("verify").SetParameter("token", code));
+
+// Melipayamak
+await otpSender.SendOtpAsync("09121234567", new OtpCodeRequest(code) { SenderLine = "3000" });
+```
+
+Passing the wrong shape throws `ArgumentException` with a message naming the provider requirement. `SenderLine`, `SendDate` and `ClientReferenceId` live on the base class and apply to both.
+
 ## Error handling
 
 Every provider behaves the same way, so callers can branch once instead of per provider.
@@ -90,7 +109,27 @@ Providers map their own status codes onto `MessageDeliveryState`. `MessageDelive
 
 ## Client references
 
-`MessageIdentifier.ForProviderMessageId(...)` and `MessageIdentifier.ForClientReferenceId(...)` build identifiers for status lookups. `OtpRequest.ClientReferenceId` lets you attach a client reference so providers with local-reference support can de-duplicate retries.
+`MessageIdentifier.ForProviderMessageId(...)` and `MessageIdentifier.ForClientReferenceId(...)` build identifiers for status lookups. `OtpRequest.ClientReferenceId` lets you attach a client reference to OTP sends.
+
+Support is opt-in per provider and matches each provider's official API:
+
+| Provider | `ClientReference` | `ClientReferenceLookup` | Notes |
+| --- | --- | --- | --- |
+| Kavenegar | ✅ | ✅ | `localid` must be numeric; repeated ids are de-duplicated server-side; status via `sms/statuslocalmessageid` (last 12 hours only) |
+| Ghasedak | ✅ | ❌ | `clientReferenceId` is an opaque string; `CheckSmsStatus` only accepts message ids or check ids |
+| SMS.ir | ❌ | ❌ | `send/bulk` has no client-reference field |
+| Melipayamak | ❌ | ❌ | `SendSMS`/`SendOtp` have no client-reference field |
+| Mock | ✅ | ✅ | Records and resolves references for offline tests |
+
+```csharp
+if (client.Supports(SmsCapabilities.ClientReference) && client is ISmsClientReferenceSender sender)
+{
+    var result = await sender.SendWithReferenceAsync("09121234567", "hello", clientReferenceId: order.Id);
+    // Kavenegar: order.Id must be numeric.
+}
+```
+
+Kavenegar's OTP method (`verify/lookup`) has no `localid` parameter, so `OtpRequest.ClientReferenceId` is ignored there; Ghasedak's `SendOtpWithParams` does accept it.
 
 ## License
 

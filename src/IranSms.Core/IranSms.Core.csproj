@@ -8,6 +8,9 @@
     <Description>Provider-agnostic core abstraction for Iranian SMS services (Kavenegar, SMS.ir, Melipayamak, Ghasedak, ...).</Description>
     <PackageTags>sms;iran;kavenegar;melipayamak;ghasedak;smsir</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Records the deliberate breaking changes (OtpRequest split into OtpTemplateRequest /
+         OtpCodeRequest) so the package-validation gate still catches accidental breaks. -->
+    <ApiCompatSuppressionFile>CompatibilitySuppressions.xml</ApiCompatSuppressionFile>
   </PropertyGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />

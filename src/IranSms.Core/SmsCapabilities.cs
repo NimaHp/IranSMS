@@ -56,5 +56,19 @@ namespace IranSms
 
         /// <summary>Read-only inspection of OTP template parameters (e.g. Ghasedak GetOtpTemplateParameters).</summary>
         OtpTemplateInspection = 1 << 13,
+
+        /// <summary>
+        /// Accepts a client-supplied reference on send (e.g. Kavenegar <c>localid</c>,
+        /// Ghasedak <c>clientReferenceId</c>). Only providers advertising this flag forward
+        /// the reference; for others it is meaningless and must not be relied on.
+        /// </summary>
+        ClientReference = 1 << 14,
+
+        /// <summary>
+        /// Delivery status of a sent message can be queried by its client reference
+        /// (e.g. Kavenegar <c>sms/statuslocalmessageid</c>). Provider-specific retention
+        /// windows apply — Kavenegar only reports the last 12 hours this way.
+        /// </summary>
+        ClientReferenceLookup = 1 << 15,
     }
 }

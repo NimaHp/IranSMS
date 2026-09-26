@@ -229,11 +229,9 @@ namespace IranSms.Tests.Ghasedak
 
             var result = await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest
-                {
-                    TemplateId = "verify",
-                    Parameters = new Dictionary<string, string> { ["param1"] = "12345", ["param10"] = "ten" },
-                },
+                new OtpTemplateRequest("verify")
+                    .SetParameter("param1", "12345")
+                    .SetParameter("param10", "ten"),
                 TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("2387931");
@@ -256,7 +254,7 @@ namespace IranSms.Tests.Ghasedak
 
             await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { TemplateId = "verify", Code = "12345" },
+                new OtpTemplateRequest("verify").SetParameter("param1", "12345"),
                 TestContext.Current.CancellationToken);
 
             transport.LastJsonBody.Should().Contain("\"param1\":\"12345\"");
@@ -274,7 +272,7 @@ namespace IranSms.Tests.Ghasedak
 
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { TemplateId = "verify", Parameters = new Dictionary<string, string> { ["param1"] = "12345" } },
+                new OtpTemplateRequest("verify").SetParameter("param1", "12345"),
                 TestContext.Current.CancellationToken);
 
             var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
@@ -285,7 +283,7 @@ namespace IranSms.Tests.Ghasedak
         public async Task Otp_RejectsWhitespaceAndMissingParam1()
         {
             var client = CreateClient(new FakeGhasedakTransport());
-            var request = new OtpRequest { TemplateId = "verify" };
+            var request = new OtpTemplateRequest("verify");
 
             Func<Task> whitespace = async () => await client.SendOtpAsync(" \t ", request, TestContext.Current.CancellationToken);
             await whitespace.Should().ThrowAsync<ArgumentException>();
@@ -301,7 +299,7 @@ namespace IranSms.Tests.Ghasedak
             var client = CreateClient(new FakeGhasedakTransport());
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest(),
+                new OtpCodeRequest("12345"),
                 TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
@@ -482,7 +480,7 @@ namespace IranSms.Tests.Ghasedak
         {
             var client = CreateClient(new FakeGhasedakTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.ClientReference);
             client.ProviderName.Should().Be("Ghasedak");
         }
     }

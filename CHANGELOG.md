@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+* **تغییر breaking:** `OtpRequest` دیگر union type نیست و abstract شد؛ به `OtpTemplateRequest` (provider-based: Kavenegar، Ghasedak، SMS.ir) و `OtpCodeRequest` (code-based: Melipayamak) تفکیک شد. `SenderLine`، `SendDate` و `ClientReferenceId` روی کلاس پایه ماندند. مهاجرت: `new OtpRequest { TemplateId = "x", Code = "1" }` → `new OtpTemplateRequest("x").SetParameter("token", "1")` برای Kavenegar، `.SetParameter("param1", "1")` برای Ghasedak و `.SetParameter("Code", "1")` برای SMS.ir؛ و `new OtpRequest { Code = "1" }` → `new OtpCodeRequest("1")` برای Melipayamak.
+* تغییر breaking در اعتبارسنجی OTP: ارسال شکل نادرست (مثلاً `OtpCodeRequest` برای Kavenegar) حالا `ArgumentException` با پیام صریح provider می‌دهد.
+* افزودن `src/IranSms.Core/CompatibilitySuppressions.xml` + `ApiCompatSuppressionFile` تا دروازهٔ package validation تغییرات breaking عمدی را بشناسد ولی سایر شکست‌های ناخواسته را همچنان بگیرد.
 * خطاهای نرمال‌شده: افزودن `SmsErrorKind` و `SmsErrorKindExtensions.IsTransient` و `IranSmsException.Kind`/`Operation`/`IsTransient` به‌همراه factoryهای `ProviderRejected`، `RateLimited` و `MalformedResponse`.
 * طبقه‌بندی خطا در providerها: هر ۴ transport و ۴ کلاینت اکنون روی همهٔ خطاها `Kind` و `Operation` می‌گذارند؛ نگاشت کدهای HTTP با `SmsErrorKindExtensions.FromHttpStatus` (۴۰۱/۴۰۳ → `Unauthorized`، ۴۰۲ → `InsufficientBalance`، ۴۰۸/۵۰۴ → `Timeout`، ۴۲۹ → `RateLimited`، ۵xx → `ProviderUnavailable` که transient است) و پاسخ‌های نامفهوم با `MalformedResponse` گزارش می‌شوند.
 * اعتبارسنجی یکدست: افزودن `SmsValidation` با `EnsureRecipient`، `NormalizeRecipient` (ترنسلیتریشن ارقام فارسی/عربی)، `EnsureMessage`، `EnsureSenderLine` و `EnsureClientReferenceId`.
@@ -13,6 +16,7 @@
 * نتیجهٔ هر گیرنده در ارسال گروهی: افزودن `SmsSendItemResult` و `SmsBulkSendResult` با شمارش موفق/ناموفق و تشخیص `IsPartialFailure`، `AllSucceeded` و `AllFailed`.
 * دسته‌بندی وضعیت تحویل: افزودن `MessageDeliveryStateExtensions` با `IsFinal`، `IsSuccessful`، `IsFailure` و `IsPending`.
 * ارجاع سمت کلاینت: افزودن `OtpRequest.ClientReferenceId`، `OtpSendResult.ClientReferenceId` و factoryهای `MessageIdentifier.ForProviderMessageId`/`ForClientReferenceId`.
+* پرچم‌های قابلیت ارجاع: افزودن `SmsCapabilities.ClientReference` و `ClientReferenceLookup` و اینترفیس `ISmsClientReferenceSender` با `SendWithReferenceAsync`. بر اساس مستندات رسمی: Kavenegar (`localid` عددی، دنبال‌کردن وضعیت با `sms/statuslocalmessageid` و پنجرهٔ ۱۲ ساعت)، Ghasedak (`clientReferenceId` رشته‌ای بدون امکان پیگیری وضعیت)، SMS.ir و Melipayamak بدون این فیلد. `Mock` هر دو پرچم را برای تست آفلاین دارد.
 * مستندسازی رفتار این قابلیت‌ها در `IranSms.Core/README.md`؛ همهٔ تغییها additive و بدون شکستن API عمومی.
 * تعداد تست‌ها به ۲۷۳ رسید؛ build، تست net8/net10 و formatter با موفقیت اجرا شدند.
 

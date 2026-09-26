@@ -137,7 +137,7 @@ namespace IranSms.Tests.SmsIr
 
             var result = await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { TemplateId = "123456", Code = "12345" },
+                new OtpTemplateRequest("123456").SetParameter("Code", "12345"),
                 TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("42");
@@ -156,11 +156,9 @@ namespace IranSms.Tests.SmsIr
 
             await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest
-                {
-                    TemplateId = "123456",
-                    Parameters = new Dictionary<string, string> { ["Code"] = "777", ["Name"] = "Ali" },
-                },
+                new OtpTemplateRequest("123456")
+                    .SetParameter("Code", "777")
+                    .SetParameter("Name", "Ali"),
                 TestContext.Current.CancellationToken);
 
             transport.LastJson!.Should().Contain("\"name\":\"Code\"");
@@ -172,7 +170,7 @@ namespace IranSms.Tests.SmsIr
         public async Task Otp_MissingTemplateId_Throws()
         {
             var client = CreateClient(new FakeSmsIrTransport());
-            Func<Task> act = async () => await client.SendOtpAsync("09120000000", new OtpRequest { Code = "123" }, TestContext.Current.CancellationToken);
+            Func<Task> act = async () => await client.SendOtpAsync("09120000000", new OtpCodeRequest("123"), TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
 
@@ -182,7 +180,7 @@ namespace IranSms.Tests.SmsIr
             var client = CreateClient(new FakeSmsIrTransport());
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { TemplateId = "not-a-number", Code = "123" },
+                new OtpTemplateRequest("not-a-number").SetParameter("Code", "123"),
                 TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
@@ -337,7 +335,7 @@ namespace IranSms.Tests.SmsIr
 
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { TemplateId = "123456", Code = "12345" },
+                new OtpTemplateRequest("123456").SetParameter("Code", "12345"),
                 TestContext.Current.CancellationToken);
 
             await act.Should().ThrowAsync<IranSmsException>();

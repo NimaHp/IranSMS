@@ -6,6 +6,9 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+* **Breaking:** `OtpRequest` is no longer a union type and is now abstract; it is split into `OtpTemplateRequest` (template-based: Kavenegar, Ghasedak, SMS.ir) and `OtpCodeRequest` (code-based: Melipayamak). `SenderLine`, `SendDate` and `ClientReferenceId` stay on the base class. Migration: `new OtpRequest { TemplateId = "x", Code = "1" }` → `new OtpTemplateRequest("x").SetParameter("token", "1")` for Kavenegar, `.SetParameter("param1", "1")` for Ghasedak and `.SetParameter("Code", "1")` for SMS.ir; and `new OtpRequest { Code = "1" }` → `new OtpCodeRequest("1")` for Melipayamak.
+* Breaking OTP validation: sending the wrong shape (for example `OtpCodeRequest` to Kavenegar) now throws `ArgumentException` with an explicit provider message.
+* Added `src/IranSms.Core/CompatibilitySuppressions.xml` plus `ApiCompatSuppressionFile` so the package-validation gate acknowledges the deliberate breaks while still catching accidental ones.
 * Normalized errors: added `SmsErrorKind`, `SmsErrorKindExtensions.IsTransient`, and `IranSmsException.Kind`/`Operation`/`IsTransient` plus the `ProviderRejected`, `RateLimited` and `MalformedResponse` factories.
 * Provider error classification: all 4 transports and 4 clients now set `Kind` and `Operation` on every failure; HTTP codes are mapped through `SmsErrorKindExtensions.FromHttpStatus` (401/403 → `Unauthorized`, 402 → `InsufficientBalance`, 408/504 → `Timeout`, 429 → `RateLimited`, 5xx → transient `ProviderUnavailable`) and unparseable answers are reported as `MalformedResponse`.
 * Consistent validation: added `SmsValidation` with `EnsureRecipient`, `NormalizeRecipient` (Persian/Arabic digit transliteration), `EnsureMessage`, `EnsureSenderLine` and `EnsureClientReferenceId`.
@@ -13,6 +16,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 * Per-recipient batch results: added `SmsSendItemResult` and `SmsBulkSendResult` with success/failure counters and `IsPartialFailure`, `AllSucceeded`, `AllFailed` flags.
 * Delivery state classification: added `MessageDeliveryStateExtensions` with `IsFinal`, `IsSuccessful`, `IsFailure` and `IsPending`.
 * Client references: added `OtpRequest.ClientReferenceId`, `OtpSendResult.ClientReferenceId` and the `MessageIdentifier.ForProviderMessageId`/`ForClientReferenceId` factories.
+* Client-reference capability flags: added `SmsCapabilities.ClientReference` and `ClientReferenceLookup` plus the `ISmsClientReferenceSender` interface with `SendWithReferenceAsync`. Verified against the official docs: Kavenegar (numeric `localid`, status lookup via `sms/statuslocalmessageid` with a 12-hour window), Ghasedak (string `clientReferenceId`, no status lookup), SMS.ir and Melipayamak (no such field). `Mock` advertises both flags for offline tests.
 * Documented the behaviour of these features in `IranSms.Core/README.md`; all changes are additive with no public API break.
 * Increased the test suite to 273 tests; build, net8/net10 tests and formatting completed successfully.
 

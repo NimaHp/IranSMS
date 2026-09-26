@@ -108,7 +108,7 @@ namespace IranSms.Tests.Melipayamak
 
             var result = await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Code = "12345", SenderLine = "5000" },
+                new OtpCodeRequest("12345") { SenderLine = "5000" },
                 TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("555");
@@ -117,12 +117,12 @@ namespace IranSms.Tests.Melipayamak
         }
 
         [Fact]
-        public async Task Otp_MissingCode_Throws()
+        public async Task Otp_TemplateRequest_Throws()
         {
             var client = CreateClient(new FakeMelipayamakTransport());
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { SenderLine = "5000" },
+                new OtpTemplateRequest("tpl").SetParameter("token", "123"),
                 TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
@@ -133,7 +133,7 @@ namespace IranSms.Tests.Melipayamak
             var client = CreateClient(new FakeMelipayamakTransport());
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Code = "123" },
+                new OtpCodeRequest("123"),
                 TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
@@ -282,7 +282,7 @@ namespace IranSms.Tests.Melipayamak
 
             var result = await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Code = "12345", SenderLine = "5000" },
+                new OtpCodeRequest("12345") { SenderLine = "5000" },
                 TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("555");
@@ -296,7 +296,7 @@ namespace IranSms.Tests.Melipayamak
 
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Code = "12345", SenderLine = "5000" },
+                new OtpCodeRequest("12345") { SenderLine = "5000" },
                 TestContext.Current.CancellationToken);
 
             var ex = (await act.Should().ThrowAsync<IranSmsException>()).Which;
@@ -391,7 +391,7 @@ namespace IranSms.Tests.Melipayamak
 
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Code = "not-a-number", SenderLine = "5000" },
+                new OtpCodeRequest("not-a-number") { SenderLine = "5000" },
                 TestContext.Current.CancellationToken);
 
             await act.Should().ThrowAsync<ArgumentException>();

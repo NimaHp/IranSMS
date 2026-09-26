@@ -136,9 +136,12 @@ namespace IranSms.Providers.Melipayamak
             if (request.SendDate.HasValue)
                 throw new NotSupportedException("Melipayamak (and all current providers) do not honour OtpRequest.SendDate — schedule delivery in your application instead.");
 
-            if (string.IsNullOrWhiteSpace(request.Code) ||
-                !int.TryParse(request.Code, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code) ||
-                code <= 0)
+            if (request is not OtpCodeRequest codeRequest)
+                throw new ArgumentException(
+                    "Melipayamak OTP is code-based — pass an OtpCodeRequest with a positive integer code.",
+                    nameof(request));
+
+            if (!int.TryParse(codeRequest.Code, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code) || code <= 0)
                 throw new ArgumentException("Melipayamak OTP requires a positive integer Code.", nameof(request));
 
             SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
@@ -150,7 +153,7 @@ namespace IranSms.Providers.Melipayamak
                 ["password"] = _password,
                 ["from"] = from,
                 ["to"] = to,
-                ["code"] = request.Code!,
+                ["code"] = codeRequest.Code,
             };
 
             var response = await _transport.PostFormAsync(SendOtpPath, form, cancellationToken).ConfigureAwait(false);

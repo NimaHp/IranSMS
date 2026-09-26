@@ -21,13 +21,12 @@ namespace IranSms.NetStandard2Consumer
             Console.WriteLine("Id: " + id);
 
             // 3. OtpRequest with template semantics
-            var otp = new OtpRequest
-            {
-                TemplateId = "tmpl-1",
-                Code = null,
-                SenderLine = "3000"
-            };
+            var otp = new OtpTemplateRequest("tmpl-1").SetParameter("token", "48291");
             Console.WriteLine("TemplateId: " + otp.TemplateId);
+
+            // 3b. OtpRequest with code semantics
+            var otpCode = new OtpCodeRequest("48291");
+            Console.WriteLine("Code: " + otpCode.Code);
 
             // 4. Send result + status result
             var send = new SmsSendResult("msg-1");

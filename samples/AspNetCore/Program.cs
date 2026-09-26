@@ -113,13 +113,13 @@ app.MapPost("/sms/otp", async (
     if (sms is not ISmsOtpSender otpSender)
         return Results.Problem("The registered provider does not support OTP sends.");
 
+    OtpRequest otpRequest = request.TemplateId is null
+        ? new OtpCodeRequest(request.Code)
+        : new OtpTemplateRequest(request.TemplateId).SetParameter("Code", request.Code);
+
     var result = await otpSender.SendOtpAsync(
         request.Recipient,
-        new OtpRequest
-        {
-            Code = request.Code,
-            TemplateId = request.TemplateId,
-        },
+        otpRequest,
         cancellationToken);
     return Results.Ok(new { result.MessageId, result.Cost });
 });

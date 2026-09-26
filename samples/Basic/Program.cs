@@ -33,11 +33,7 @@ if (mock.Supports(SmsCapabilities.OtpSend))
 {
     var otp = await mock.SendOtpAsync(
         recipient: "09121234567",
-        request: new OtpRequest
-        {
-            Code = "48291",
-            TemplateId = "LoginTemplate",
-        },
+        request: new OtpTemplateRequest("LoginTemplate").SetParameter("token", "48291"),
         cancellationToken: cancellationToken);
     Console.WriteLine($"OTP send -> {otp.MessageId} (cost: {otp.Cost})");
 }

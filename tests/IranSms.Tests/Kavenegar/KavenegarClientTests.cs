@@ -120,7 +120,7 @@ namespace IranSms.Tests.Kavenegar
 
             var result = await client.SendOtpAsync(
                 "09220000000",
-                new OtpRequest { TemplateId = "verify", Code = "12345" },
+                new OtpTemplateRequest("verify").SetParameter("token", "12345"),
                 TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("55");
@@ -137,11 +137,9 @@ namespace IranSms.Tests.Kavenegar
 
             await client.SendOtpAsync(
                 "09220000000",
-                new OtpRequest
-                {
-                    TemplateId = "verify",
-                    Parameters = new Dictionary<string, string> { ["token"] = "111", ["token2"] = "222" },
-                },
+                new OtpTemplateRequest("verify")
+                    .SetParameter("token", "111")
+                    .SetParameter("token2", "222"),
                 TestContext.Current.CancellationToken);
 
             transport.LastParameters!["token"].Should().Be("111");
@@ -154,7 +152,7 @@ namespace IranSms.Tests.Kavenegar
             var client = CreateClient(new FakeKavenegarTransport());
             Func<Task> act = async () => await client.SendOtpAsync(
                 "09220000000",
-                new OtpRequest { TemplateId = "verify" },
+                new OtpTemplateRequest("verify"),
                 TestContext.Current.CancellationToken);
             await act.Should().ThrowAsync<ArgumentException>();
         }
@@ -346,7 +344,7 @@ namespace IranSms.Tests.Kavenegar
         {
             var client = CreateClient(new FakeKavenegarTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup);
             client.ProviderName.Should().Be("Kavenegar");
         }
     }

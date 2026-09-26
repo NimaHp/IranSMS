@@ -9,7 +9,7 @@ namespace IranSms.Providers.Mock
     /// (state: Delivered for single/OTP sends, Queued for bulk). Useful for
     /// tests, demos and local development without a real provider account.
     /// </summary>
-    public sealed class MockSmsClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo
+    public sealed class MockSmsClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsClientReferenceSender, ISmsDeliveryReporter, ISmsAccountInfo
     {
         private const int MaxBulkRecipients = 200;
         private const int MaxStoredMessages = 10000;
@@ -49,7 +49,7 @@ namespace IranSms.Providers.Mock
 
         /// <inheritdoc />
         public SmsCapabilities Capabilities =>
-            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.SenderLines;
+            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.SenderLines | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup;
 
         /// <summary>
         /// Gets a snapshot of all messages recorded so far (newest last).
@@ -107,6 +107,43 @@ namespace IranSms.Providers.Mock
             }
 
             return Task.FromResult(new SmsSendResult(id));
+        }
+
+        /// <inheritdoc />
+        public Task<SmsSendResult> SendWithReferenceAsync(
+            string recipient,
+            string message,
+            string clientReferenceId,
+            string? senderLine = null,
+            CancellationToken cancellationToken = default)
+        {
+            var target = SmsValidation.EnsureRecipient(recipient);
+            var text = SmsValidation.EnsureMessage(message);
+            if (clientReferenceId is null)
+                throw new ArgumentNullException(nameof(clientReferenceId));
+            var reference = SmsValidation.EnsureClientReferenceId(clientReferenceId, nameof(clientReferenceId))!;
+            var line = SmsValidation.EnsureSenderLine(senderLine);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var id = NextId();
+            var entry = new MockMessage(
+                id,
+                target,
+                text,
+                line,
+                MessageDeliveryState.Delivered,
+                null,
+                DateTimeOffset.UtcNow,
+                reference);
+
+            lock (_lock)
+            {
+                EnsureCapacity();
+                _messages.Add(entry);
+            }
+
+            return Task.FromResult(new SmsSendResult(id) { ClientReferenceId = reference });
         }
 
         /// <inheritdoc />
@@ -168,8 +205,11 @@ namespace IranSms.Providers.Mock
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var code = request.Code
-                ?? (request.Parameters != null && request.Parameters.TryGetValue("token", out var t) ? t : null)
+            var code = request is OtpCodeRequest codeRequest
+                ? codeRequest.Code
+                : (request is OtpTemplateRequest template && template.Parameters is not null && template.Parameters.TryGetValue("token", out var token)
+                    ? token
+                    : null)
                 ?? "000000";
 
             var id = NextId();
@@ -179,7 +219,7 @@ namespace IranSms.Providers.Mock
                 code,
                 SmsValidation.EnsureSenderLine(request.SenderLine, nameof(request)),
                 MessageDeliveryState.Delivered,
-                request.TemplateId,
+                (request as OtpTemplateRequest)?.TemplateId,
                 DateTimeOffset.UtcNow);
 
             lock (_lock)
@@ -204,11 +244,15 @@ namespace IranSms.Providers.Mock
             MockMessage? found = null;
             lock (_lock)
             {
-                // Mock only tracks provider-assigned ids; client reference ids are never matched.
                 if (message.Type == MessageIdentifierType.ProviderMessageId)
                 {
                     found = _messages.FirstOrDefault(m =>
                         string.Equals(m.Id, message.Value, StringComparison.Ordinal));
+                }
+                else if (message.Type == MessageIdentifierType.ClientReferenceId)
+                {
+                    found = _messages.LastOrDefault(m =>
+                        string.Equals(m.ClientReferenceId, message.Value, StringComparison.Ordinal));
                 }
             }
 
@@ -293,6 +337,30 @@ namespace IranSms.Providers.Mock
             MessageDeliveryState state,
             string? templateId,
             DateTimeOffset sendDate)
+            : this(id, recipient, messageText, senderLine, state, templateId, sendDate, clientReferenceId: null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MockMessage"/> class with a client reference.
+        /// </summary>
+        /// <param name="id">Provider message id.</param>
+        /// <param name="recipient">Destination number.</param>
+        /// <param name="messageText">Message text (or OTP code).</param>
+        /// <param name="senderLine">Sender line used (may be null).</param>
+        /// <param name="state">Delivery state.</param>
+        /// <param name="templateId">Template id for OTP sends (may be null).</param>
+        /// <param name="sendDate">UTC send timestamp.</param>
+        /// <param name="clientReferenceId">Client-supplied reference (may be null).</param>
+        public MockMessage(
+            string id,
+            string recipient,
+            string messageText,
+            string? senderLine,
+            MessageDeliveryState state,
+            string? templateId,
+            DateTimeOffset sendDate,
+            string? clientReferenceId)
         {
             Id = id;
             Recipient = recipient;
@@ -301,6 +369,7 @@ namespace IranSms.Providers.Mock
             State = state;
             TemplateId = templateId;
             SendDate = sendDate;
+            ClientReferenceId = clientReferenceId;
         }
 
         /// <summary>Provider message id.</summary>
@@ -323,5 +392,8 @@ namespace IranSms.Providers.Mock
 
         /// <summary>UTC send timestamp.</summary>
         public DateTimeOffset SendDate { get; }
+
+        /// <summary>Client-supplied reference, when the send carried one (may be null).</summary>
+        public string? ClientReferenceId { get; }
     }
 }

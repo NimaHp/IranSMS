@@ -29,7 +29,7 @@ namespace IranSms.Tests.Mock
         {
             var client = CreateClient();
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup);
         }
 
         [Fact]
@@ -87,7 +87,7 @@ namespace IranSms.Tests.Mock
 
             var result = await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Code = "12345", TemplateId = "verify" },
+                new OtpTemplateRequest("verify").SetParameter("token", "12345"),
                 TestContext.Current.CancellationToken);
 
             result.MessageId.Should().Be("mock-1");
@@ -104,7 +104,7 @@ namespace IranSms.Tests.Mock
 
             var result = await client.SendOtpAsync(
                 "09120000000",
-                new OtpRequest { Parameters = new Dictionary<string, string> { ["token"] = "9876" } },
+                new OtpTemplateRequest("mock").SetParameter("token", "9876"),
                 TestContext.Current.CancellationToken);
 
             client.Messages[0].MessageText.Should().Be("9876");
@@ -115,7 +115,7 @@ namespace IranSms.Tests.Mock
         {
             var client = CreateClient();
 
-            await client.SendOtpAsync("09120000000", new OtpRequest(), TestContext.Current.CancellationToken);
+            await client.SendOtpAsync("09120000000", new OtpTemplateRequest("mock"), TestContext.Current.CancellationToken);
 
             client.Messages[0].MessageText.Should().Be("000000");
         }

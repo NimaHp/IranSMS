@@ -119,18 +119,18 @@ namespace IranSms.Providers.SmsIr
             if (request.SendDate.HasValue)
                 throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
             SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
+            if (request is not OtpTemplateRequest template)
+                throw new ArgumentException(
+                    "SMS.ir OTP is template-based — pass an OtpTemplateRequest with the template id and its parameters.",
+                    nameof(request));
 
-            var templateIdText = request.TemplateId;
-            if (string.IsNullOrWhiteSpace(templateIdText))
-                throw new ArgumentException("SMS.ir OTP requires a template id (TemplateId).", nameof(request));
-
-            if (!long.TryParse(templateIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var templateId))
+            if (!long.TryParse(template.TemplateId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var templateId))
                 throw new ArgumentException("SMS.ir template id must be an integer.", nameof(request));
 
             var parameters = new List<SmsIrVerifyParameter>();
-            if (request.Parameters is { Count: > 0 })
+            if (template.Parameters is { Count: > 0 })
             {
-                foreach (var pair in request.Parameters)
+                foreach (var pair in template.Parameters)
                 {
                     if (string.IsNullOrWhiteSpace(pair.Key) || string.IsNullOrWhiteSpace(pair.Value))
                         throw new ArgumentException("SMS.ir OTP parameters must have non-empty names and values.", nameof(request));
@@ -143,14 +143,9 @@ namespace IranSms.Providers.SmsIr
             }
             else
             {
-                if (string.IsNullOrWhiteSpace(request.Code))
-                    throw new ArgumentException("SMS.ir OTP requires a Code or Parameters.", nameof(request));
-
-                parameters.Add(new SmsIrVerifyParameter
-                {
-                    Name = "Code",
-                    Value = request.Code!,
-                });
+                throw new ArgumentException(
+                    "SMS.ir OTP requires at least one template parameter (for example SetParameter(\"Code\", code)).",
+                    nameof(request));
             }
 
             var payload = new SmsIrVerifyRequest

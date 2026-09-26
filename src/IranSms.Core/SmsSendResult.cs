@@ -25,5 +25,12 @@ namespace IranSms
 
         /// <summary>Optional per-recipient ids (bulk/heterogeneous sends).</summary>
         public string[]? RecipientIds { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client reference that was sent with the message. Set by
+        /// <see cref="ISmsClientReferenceSender"/> implementations; null when the send
+        /// carried no reference or the provider does not echo it back.
+        /// </summary>
+        public string? ClientReferenceId { get; set; }
     }
 }

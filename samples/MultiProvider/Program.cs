@@ -45,7 +45,7 @@ if (otpSender is not null)
 {
     var otp = await otpSender.SendOtpAsync(
         recipient: "09121234567",
-        request: new OtpRequest { Code = "48291", TemplateId = "LoginTemplate" },
+        request: new OtpTemplateRequest("LoginTemplate").SetParameter("token", "48291"),
         cancellationToken);
     Console.WriteLine($"OTP sent via {((ISmsClient)otpSender).ProviderName} -> {otp.MessageId}");
 }

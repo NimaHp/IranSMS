@@ -7,7 +7,7 @@ namespace IranSms.Providers.Kavenegar
     /// Implements <see cref="IDisposable"/> to release the internal <see cref="HttpClient"/> when the transport owns it (no external HttpClient was supplied).
     /// If you supplied an <see cref="HttpClient"/> at construction, its lifetime remains caller-owned.
     /// </summary>
-    public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
+    public sealed class KavenegarClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsClientReferenceSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
     {
         private const int MaxRecipients = 200;
 
@@ -52,7 +52,9 @@ namespace IranSms.Providers.Kavenegar
             | SmsCapabilities.OtpSend
             | SmsCapabilities.DeliveryStatus
             | SmsCapabilities.AccountInfo
-            | SmsCapabilities.SenderLines;
+            | SmsCapabilities.SenderLines
+            | SmsCapabilities.ClientReference
+            | SmsCapabilities.ClientReferenceLookup;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -73,6 +75,42 @@ namespace IranSms.Providers.Kavenegar
             return new SmsSendResult(messageId)
             {
                 Cost = entry.GetNullableDecimal("cost"),
+            };
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Kavenegar expects a numeric <c>localid</c> and skips the send when that
+        /// <c>localid</c> was already used, so retries of the same logical send return
+        /// the original record instead of sending twice. OTP (<c>verify/lookup</c>) has no
+        /// <c>localid</c> parameter in the official API, so references are ignored there.
+        /// </remarks>
+        public async Task<SmsSendResult> SendWithReferenceAsync(
+            string recipient,
+            string message,
+            string clientReferenceId,
+            string? senderLine = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (clientReferenceId is null)
+                throw new ArgumentNullException(nameof(clientReferenceId));
+            var reference = SmsValidation.EnsureClientReferenceId(clientReferenceId, nameof(clientReferenceId))!;
+            if (!long.TryParse(reference, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var localId))
+                throw new ArgumentException("Kavenegar requires a numeric client reference (localid).", nameof(clientReferenceId));
+
+            var parameters = new Dictionary<string, string>
+            {
+                ["receptor"] = SmsValidation.EnsureRecipient(recipient),
+                ["message"] = SmsValidation.EnsureMessage(message),
+                ["localid"] = localId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            };
+            AddOptional(parameters, "sender", SmsValidation.EnsureSenderLine(senderLine));
+
+            var entry = await SendCoreAsync(SendPath, parameters, cancellationToken).ConfigureAwait(false);
+            return new SmsSendResult(RequireMessageId(entry, "SendWithReference"))
+            {
+                Cost = entry.GetNullableDecimal("cost"),
+                ClientReferenceId = reference,
             };
         }
 
@@ -136,24 +174,20 @@ namespace IranSms.Providers.Kavenegar
             if (request.SendDate.HasValue)
                 throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
             SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
-
-            var templateName = request.TemplateId;
-            if (string.IsNullOrWhiteSpace(templateName))
-                throw new ArgumentException("Kavenegar OTP requires a template name (TemplateId).", nameof(request));
+            if (request is not OtpTemplateRequest template)
+                throw new ArgumentException(
+                    "Kavenegar OTP is template-based — pass an OtpTemplateRequest (its parameters use token/token2/token3/token10/token20).",
+                    nameof(request));
 
             var parameters = new Dictionary<string, string>
             {
                 ["receptor"] = receptor,
-                ["template"] = templateName!,
+                ["template"] = template.TemplateId,
             };
 
-            if (!string.IsNullOrWhiteSpace(request.Code))
+            if (template.Parameters is { Count: > 0 })
             {
-                parameters["token"] = request.Code!;
-            }
-            else if (request.Parameters is { Count: > 0 })
-            {
-                foreach (var pair in request.Parameters)
+                foreach (var pair in template.Parameters)
                 {
                     // Kavenegar token params: token, token2, token3, token10, token20.
                     if (string.Equals(pair.Key, "token", StringComparison.OrdinalIgnoreCase) ||
@@ -165,10 +199,19 @@ namespace IranSms.Providers.Kavenegar
                         parameters[pair.Key.ToLowerInvariant()] = pair.Value;
                     }
                 }
+
+                if (parameters.Count == 2)
+                {
+                    throw new ArgumentException(
+                        "Kavenegar OTP requires at least one token parameter (token, token2, token3, token10 or token20).",
+                        nameof(request));
+                }
             }
             else
             {
-                throw new ArgumentException("Kavenegar OTP requires a Code or token parameters.", nameof(request));
+                throw new ArgumentException(
+                    "Kavenegar OTP requires at least one token parameter (token, token2, token3, token10 or token20).",
+                    nameof(request));
             }
 
             if (request.SenderLine is not null)

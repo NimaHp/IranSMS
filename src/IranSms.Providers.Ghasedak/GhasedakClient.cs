@@ -9,7 +9,7 @@ namespace IranSms.Providers.Ghasedak
     /// Authenticates with an ApiKey header on every request.
     /// Implements <see cref="IDisposable"/> to release the internal <see cref="HttpClient"/> when caller did not supply one.
     /// </summary>
-    public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
+    public sealed class GhasedakClient : ISmsClient, ISmsBulkSender, ISmsOtpSender, ISmsClientReferenceSender, ISmsDeliveryReporter, ISmsAccountInfo, IDisposable
     {
         private const int MaxBulkRecipients = 100;
         private const int MaxMessageLength = 1000;
@@ -53,7 +53,8 @@ namespace IranSms.Providers.Ghasedak
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
             | SmsCapabilities.DeliveryStatus
-            | SmsCapabilities.AccountInfo;
+            | SmsCapabilities.AccountInfo
+            | SmsCapabilities.ClientReference;
 
         /// <inheritdoc />
         public async Task<SmsSendResult> SendAsync(
@@ -83,6 +84,51 @@ namespace IranSms.Providers.Ghasedak
             if (string.IsNullOrWhiteSpace(msgId))
                 throw MissingMessageId("SendSingleSMS", raw);
             return new SmsSendResult(msgId!);
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Ghasedak accepts an opaque <c>clientReferenceId</c> on <c>SendSingleSMS</c>,
+        /// but its <c>CheckSmsStatus</c> method only accepts provider message ids or
+        /// check ids — so the reference is for correlation, not for status lookups
+        /// (no <see cref="SmsCapabilities.ClientReferenceLookup"/>).
+        /// </remarks>
+        public async Task<SmsSendResult> SendWithReferenceAsync(
+            string recipient,
+            string message,
+            string clientReferenceId,
+            string? senderLine = null,
+            CancellationToken cancellationToken = default)
+        {
+            var text = SmsValidation.EnsureMessage(message);
+            if (text.Length > MaxMessageLength)
+                throw new ArgumentException($"Ghasedak messages are limited to {MaxMessageLength} characters.", nameof(message));
+
+            if (clientReferenceId is null)
+                throw new ArgumentNullException(nameof(clientReferenceId));
+            var reference = SmsValidation.EnsureClientReferenceId(clientReferenceId, nameof(clientReferenceId))!;
+            var body = new Dictionary<string, object>
+            {
+                ["message"] = text,
+                ["receptor"] = SmsValidation.EnsureRecipient(recipient),
+                ["clientReferenceId"] = reference,
+            };
+            var line = SmsValidation.EnsureSenderLine(senderLine);
+            if (line != null)
+                body["lineNumber"] = line;
+
+            var json = JsonSerializer.Serialize(body);
+            var raw = await _transport.PostJsonAsync(SendSinglePath, json, cancellationToken).ConfigureAwait(false);
+            var envelope = GhasedakResponse.EnsureSuccess(GhasedakEnvelope.Deserialize(raw), raw, SendSinglePath);
+
+            var msgId = envelope != null ? GhasedakResponse.GetDataString(envelope, "MessageId") : null;
+            if (string.IsNullOrWhiteSpace(msgId))
+                throw MissingMessageId("SendSingleSMS", raw);
+
+            return new SmsSendResult(msgId!)
+            {
+                ClientReferenceId = reference,
+            };
         }
 
         /// <inheritdoc />
@@ -143,23 +189,20 @@ namespace IranSms.Providers.Ghasedak
                 throw new NotSupportedException($"{ProviderName} does not honour OtpRequest.SendDate — schedule delivery in your application instead.");
             SmsValidation.EnsureClientReferenceId(request.ClientReferenceId, nameof(request));
             SmsValidation.EnsureSenderLine(request.SenderLine, nameof(request));
-
-            if (string.IsNullOrWhiteSpace(request.TemplateId))
-                throw new ArgumentException("Ghasedak OTP requires a TemplateId (template name).", nameof(request));
+            if (request is not OtpTemplateRequest template)
+                throw new ArgumentException(
+                    "Ghasedak OTP is template-based — pass an OtpTemplateRequest whose parameters are named param1..param10.",
+                    nameof(request));
 
             var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (request.Parameters is { Count: > 0 })
+            if (template.Parameters is { Count: > 0 })
             {
-                foreach (var parameter in request.Parameters)
+                foreach (var parameter in template.Parameters)
                     parameters[parameter.Key] = parameter.Value;
-            }
-            else if (!string.IsNullOrWhiteSpace(request.Code))
-            {
-                parameters["param1"] = request.Code!;
             }
 
             if (!parameters.TryGetValue("param1", out var param1) || string.IsNullOrWhiteSpace(param1))
-                throw new ArgumentException("Ghasedak OTP requires Code or Parameters with a non-empty param1.", nameof(request));
+                throw new ArgumentException("Ghasedak OTP requires a non-empty param1 parameter.", nameof(request));
             foreach (var parameter in parameters)
             {
                 if (!IsOtpParameterName(parameter.Key) || string.IsNullOrWhiteSpace(parameter.Value))
@@ -168,7 +211,7 @@ namespace IranSms.Providers.Ghasedak
 
             var body = new Dictionary<string, object>
             {
-                ["templateName"] = request.TemplateId!,
+                ["templateName"] = template.TemplateId,
                 ["receptors"] = new[]
                 {
                     new { mobile = receptor },
