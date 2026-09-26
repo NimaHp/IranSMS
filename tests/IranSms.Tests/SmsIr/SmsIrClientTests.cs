@@ -220,14 +220,16 @@ namespace IranSms.Tests.SmsIr
         }
 
         [Theory]
-        [InlineData("0", MessageDeliveryState.Queued)]
         [InlineData("1", MessageDeliveryState.Delivered)]
         [InlineData("2", MessageDeliveryState.Undelivered)]
         [InlineData("3", MessageDeliveryState.SentToOperator)]
-        [InlineData("4", MessageDeliveryState.Undelivered)]
+        [InlineData("4", MessageDeliveryState.Failed)]
         [InlineData("5", MessageDeliveryState.SentToOperator)]
         [InlineData("6", MessageDeliveryState.Failed)]
         [InlineData("7", MessageDeliveryState.Blocked)]
+        [InlineData("0", MessageDeliveryState.Unknown)]
+        [InlineData("8", MessageDeliveryState.Unknown)]
+        [InlineData("255", MessageDeliveryState.Unknown)]
         public async Task StatusMapping_VariousValues(string raw, MessageDeliveryState expected)
         {
             var transport = new FakeSmsIrTransport

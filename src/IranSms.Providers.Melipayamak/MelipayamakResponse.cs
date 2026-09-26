@@ -170,6 +170,15 @@ namespace IranSms.Providers.Melipayamak
         /// </summary>
         /// <param name="status">The raw delivery status.</param>
         /// <returns>The normalized delivery state.</returns>
+        /// <remarks>
+        /// The provider separates two failure points: <c>2</c> is "did not reach the phone"
+        /// while <c>16</c> is "did not reach the telecom" — the message never left
+        /// Melipayamak, so it is reported as <see cref="MessageDeliveryState.Failed"/>
+        /// rather than as an undelivered message. <c>300</c> is "filtered" and therefore
+        /// reported as <see cref="MessageDeliveryState.Blocked"/>. <c>0</c>, <c>8</c> and
+        /// <c>200</c> are all handed-over states the normalized enum cannot distinguish, so
+        /// they share <see cref="MessageDeliveryState.SentToOperator"/>.
+        /// </remarks>
         public static MessageDeliveryState MapDeliveryState(string? status)
         {
             if (string.IsNullOrWhiteSpace(status))
@@ -181,24 +190,24 @@ namespace IranSms.Providers.Melipayamak
 
             switch (code)
             {
-                case -1:            // not sent
-                case 3:             // telecom error
-                case 5:             // unknown error
-                case 300:           // filtered
-                case 500:           // not accepted
+                case -1:            // ارسال نشده — not sent
+                case 3:             // خطای مخابراتی — telecom error
+                case 5:             // خطای نامشخص — unknown error
+                case 16:            // نرسیده به مخابرات — never reached the operator
+                case 500:           // عدم پذیرش — not accepted
                     return MessageDeliveryState.Failed;
-                case 0:             // sent to telecom
-                case 8:             // reached telecom
-                case 200:           // sent
-                    return MessageDeliveryState.SentToOperator;
-                case 1:             // reached the phone
-                    return MessageDeliveryState.Delivered;
-                case 2:             // not reached the phone
-                case 16:            // not reached telecom
-                    return MessageDeliveryState.Undelivered;
-                case 35:            // blacklist
+                case 300:           // فیلتر شده — filtered
+                case 35:            // لیست سیاه — blacklist
                     return MessageDeliveryState.Blocked;
-                case 400:           // in the send queue
+                case 0:             // ارسال شده به مخابرات — sent to the operator
+                case 8:             // رسیده به مخابرات — reached the operator
+                case 200:           // ارسال شده — sent
+                    return MessageDeliveryState.SentToOperator;
+                case 1:             // رسیده به گوشی — reached the phone
+                    return MessageDeliveryState.Delivered;
+                case 2:             // نرسیده به گوشی — did not reach the phone
+                    return MessageDeliveryState.Undelivered;
+                case 400:           // در لیست ارسال — in the send queue
                     return MessageDeliveryState.Queued;
                 default:            // null, -2/-3/-10, -108/-109/-110, 100
                     return MessageDeliveryState.Unknown;

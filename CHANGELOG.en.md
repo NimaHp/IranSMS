@@ -6,6 +6,9 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+* Fixed delivery-status mapping against the providers' official status tables: in SMS.ir code `4` ("not reached the operator") is now `Failed` instead of `Undelivered`, the undocumented `0` was removed and falls through to `Unknown`; in Melipayamak code `16` ("not reached the operator") became `Failed`, code `300` ("filtered") became `Blocked`, and code `200` ("sent") was added.
+* Documented the complete per-provider delivery-state matrix in `IranSms.Core/README.md`, including the two distinctions deliberately collapsed by the normalized enum (Kavenegar code 13, Melipayamak codes 0/8/200) and the authorization codes that only yield `Unknown`.
+* Added `DeliveryStateMatrixTests` covering the complete official code set of all four providers.
 * **Breaking:** `OtpRequest` is no longer a union type and is now abstract; it is split into `OtpTemplateRequest` (template-based: Kavenegar, Ghasedak, SMS.ir) and `OtpCodeRequest` (code-based: Melipayamak). `SenderLine`, `SendDate` and `ClientReferenceId` stay on the base class. Migration: `new OtpRequest { TemplateId = "x", Code = "1" }` → `new OtpTemplateRequest("x").SetParameter("token", "1")` for Kavenegar, `.SetParameter("param1", "1")` for Ghasedak and `.SetParameter("Code", "1")` for SMS.ir; and `new OtpRequest { Code = "1" }` → `new OtpCodeRequest("1")` for Melipayamak.
 * Breaking OTP validation: sending the wrong shape (for example `OtpCodeRequest` to Kavenegar) now throws `ArgumentException` with an explicit provider message.
 * Added `src/IranSms.Core/CompatibilitySuppressions.xml` plus `ApiCompatSuppressionFile` so the package-validation gate acknowledges the deliberate breaks while still catching accidental ones.

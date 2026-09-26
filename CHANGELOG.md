@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+* تصحیح نگاشت وضعیت تحویل بر اساس جداول رسمی providerها: در SMS.ir کد `4` («نرسیده به مخابرات») دیگر `Undelivered` نیست و `Failed` شد، کد `0` که مستند نشده بود حذف شد و به `Unknown` افتاد؛ در Melipayamak کد `16` («نرسیده به مخابرات») به `Failed` و کد `300` («فیلتر شده») به `Blocked` تغییر کرد و کد `200` («ارسال شده») اضافه شد.
+* مستندسازی ماتریس کامل وضعیت delivery هر provider در `IranSms.Core/README.md` به‌همراه توضیح دو تفاوتی که عمداً در enum نرمال فشرده شده‌اند (کد ۱۳ کاوه‌نگار و کدهای ۰/۸/۲۰۰ ملی‌پیامک) و کدهای مجوزی که فقط `Unknown` می‌شوند.
+* افزودن `DeliveryStateMatrixTests` برای پوشش کامل کدهای رسمی هر چهار provider.
 * **تغییر breaking:** `OtpRequest` دیگر union type نیست و abstract شد؛ به `OtpTemplateRequest` (provider-based: Kavenegar، Ghasedak، SMS.ir) و `OtpCodeRequest` (code-based: Melipayamak) تفکیک شد. `SenderLine`، `SendDate` و `ClientReferenceId` روی کلاس پایه ماندند. مهاجرت: `new OtpRequest { TemplateId = "x", Code = "1" }` → `new OtpTemplateRequest("x").SetParameter("token", "1")` برای Kavenegar، `.SetParameter("param1", "1")` برای Ghasedak و `.SetParameter("Code", "1")` برای SMS.ir؛ و `new OtpRequest { Code = "1" }` → `new OtpCodeRequest("1")` برای Melipayamak.
 * تغییر breaking در اعتبارسنجی OTP: ارسال شکل نادرست (مثلاً `OtpCodeRequest` برای Kavenegar) حالا `ArgumentException` با پیام صریح provider می‌دهد.
 * افزودن `src/IranSms.Core/CompatibilitySuppressions.xml` + `ApiCompatSuppressionFile` تا دروازهٔ package validation تغییرات breaking عمدی را بشناسد ولی سایر شکست‌های ناخواسته را همچنان بگیرد.

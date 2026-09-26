@@ -107,6 +107,27 @@ catch (IranSmsException ex)
 
 Providers map their own status codes onto `MessageDeliveryState`. `MessageDeliveryStateExtensions` gives one vocabulary: `IsFinal()`, `IsSuccessful()`, `IsFailure()`, `IsPending()`.
 
+Not every provider can report every state. Verified against each provider's official status table:
+
+| State | Kavenegar (`sms/status`, `sms/statuslocalmessageid`) | Ghasedak (`CheckSmsStatus`) | SMS.ir (`deliveryState`) | Melipayamak (`GetDeliveries`) | Mock |
+| --- | --- | --- | --- | --- | --- |
+| `Queued` | 1 | — | — | 400 | bulk |
+| `Scheduled` | 2 | — | — | — | — |
+| `SentToOperator` | 4, 5 | 3 | 3, 5 | 0, 8, 200 | — |
+| `Delivered` | 10 | 5 | 1 | 1 | single/OTP |
+| `Undelivered` | 11 | 4 | 2 | 2 | — |
+| `Failed` | 6 | 6 | 4, 6 | -1, 3, 5, 16, 500 | — |
+| `Cancelled` | 13 | 1 | — | — | — |
+| `Blocked` | 14 | 2 | 7 | 35, 300 | — |
+| `Unknown` | 100 + anything else | 0, 7, 8 + anything else | `null` + anything else | 100, -2/-3/-10, -108/-109/-110 | unknown id |
+
+Two provider-specific distinctions are deliberately collapsed because the normalized enum has no state for them:
+
+- Kavenegar `13` is either "cancelled by the user" or "a send problem with a refunded cost".
+- Melipayamak `0` (sent to the operator), `8` (reached the operator) and `200` (sent) are separate steps upstream.
+
+Codes that are API or authorization errors rather than delivery outcomes (Melipayamak `-2`, `-3`, `-10`, `-108`, `-109`, `-110`) surface as `Unknown`; use `RawStatus` to read the raw value.
+
 ## Client references
 
 `MessageIdentifier.ForProviderMessageId(...)` and `MessageIdentifier.ForClientReferenceId(...)` build identifiers for status lookups. `OtpRequest.ClientReferenceId` lets you attach a client reference to OTP sends.

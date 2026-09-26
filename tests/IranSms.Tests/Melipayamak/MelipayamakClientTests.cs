@@ -162,11 +162,14 @@ namespace IranSms.Tests.Melipayamak
         [InlineData("3", MessageDeliveryState.Failed)]
         [InlineData("5", MessageDeliveryState.Failed)]
         [InlineData("8", MessageDeliveryState.SentToOperator)]
-        [InlineData("16", MessageDeliveryState.Undelivered)]
+        [InlineData("16", MessageDeliveryState.Failed)]
         [InlineData("35", MessageDeliveryState.Blocked)]
-        [InlineData("300", MessageDeliveryState.Failed)]
+        [InlineData("200", MessageDeliveryState.SentToOperator)]
+        [InlineData("300", MessageDeliveryState.Blocked)]
         [InlineData("400", MessageDeliveryState.Queued)]
         [InlineData("500", MessageDeliveryState.Failed)]
+        [InlineData("100", MessageDeliveryState.Unknown)]
+        [InlineData("-3", MessageDeliveryState.Unknown)]
         [InlineData("99", MessageDeliveryState.Unknown)]
         public async Task GetMessageStatusAsync_MapsCodes(string raw, MessageDeliveryState expected)
         {

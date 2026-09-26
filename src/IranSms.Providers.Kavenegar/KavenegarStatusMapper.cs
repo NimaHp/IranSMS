@@ -4,6 +4,13 @@
     /// Maps Kavenegar numeric status codes to the
     /// normalized <see cref="MessageDeliveryState"/>.
     /// </summary>
+    /// <remarks>
+    /// Covers the complete official "table 2 — message statuses" set (1, 2, 4, 5, 6, 10,
+    /// 11, 13, 14, 100). Notes on codes the normalized enum cannot express: <c>13</c> is
+    /// "cancelled by the user OR a send problem with a refunded cost", and <c>100</c> means
+    /// "invalid message id" (unknown, archived, not yours, or older than the 48-hour
+    /// <c>sms/status</c> window) rather than a delivery outcome.
+    /// </remarks>
     internal static class KavenegarStatusMapper
     {
         /// <summary>

@@ -87,7 +87,10 @@ namespace IranSms.Providers.Ghasedak
 
         /// <summary>
         /// Maps a Ghasedak delivery status code (0-8) to a
-        /// <see cref="MessageDeliveryState"/>.
+        /// <see cref="MessageDeliveryState"/>. Covers the complete official
+        /// "status of sent messages" table; <c>7</c> is the provider's
+        /// error-diagnosis mode and <c>8</c> is "unspecified", so both stay
+        /// <see cref="MessageDeliveryState.Unknown"/> — they are not delivery outcomes.
         /// </summary>
         public static MessageDeliveryState MapDeliveryState(int status)
         {
