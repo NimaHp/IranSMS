@@ -344,7 +344,7 @@ namespace IranSms.Tests.Kavenegar
         {
             var client = CreateClient(new FakeKavenegarTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.OtpTemplateSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup);
             client.ProviderName.Should().Be("Kavenegar");
         }
     }

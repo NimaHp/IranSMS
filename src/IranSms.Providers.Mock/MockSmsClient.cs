@@ -49,7 +49,7 @@ namespace IranSms.Providers.Mock
 
         /// <inheritdoc />
         public SmsCapabilities Capabilities =>
-            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.SenderLines | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup;
+            SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.OtpTemplateSend | SmsCapabilities.OtpCodeSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.SenderLines | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup;
 
         /// <summary>
         /// Gets a snapshot of all messages recorded so far (newest last).

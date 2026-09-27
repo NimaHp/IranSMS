@@ -35,20 +35,19 @@ Check capabilities with `client.Supports(flag)` or `(client.Capabilities & flag)
 
 `OtpRequest` is an abstract base with two concrete shapes, because a provider template and an OTP code are different things:
 
-| Request | When to use | Providers |
-| --- | --- | --- |
-| `OtpTemplateRequest` | the provider holds a pre-approved pattern and the library fills its placeholders | Kavenegar (`token`, `token2`, `token3`, `token10`, `token20`), Ghasedak (`param1`..`param10`), SMS.ir (arbitrary names, numeric template id) |
-| `OtpCodeRequest` | the provider owns the text and injects the code | Melipayamak (`SendOtp`) |
+| Request | When to use | Providers | Capability flag |
+| --- | --- | --- | --- |
+| `OtpTemplateRequest` | the provider holds a pre-approved pattern and the library fills its placeholders | Kavenegar (`token`, `token2`, `token3`, `token10`, `token20`), Ghasedak (`param1`..`param10`), SMS.ir (arbitrary names, numeric template id) | `OtpTemplateSend` |
+| `OtpCodeRequest` | the provider owns the text and injects the code | Melipayamak (`SendOtp`) | `OtpCodeSend` |
 
 ```csharp
-// Kavenegar / Ghasedak / SMS.ir
-await otpSender.SendOtpAsync("09121234567", new OtpTemplateRequest("verify").SetParameter("token", code));
-
-// Melipayamak
-await otpSender.SendOtpAsync("09121234567", new OtpCodeRequest(code) { SenderLine = "3000" });
+if (client.Supports(SmsCapabilities.OtpTemplateSend))
+    await otpSender.SendOtpAsync("09121234567", new OtpTemplateRequest("verify").SetParameter("token", code));
+else if (client.Supports(SmsCapabilities.OtpCodeSend))
+    await otpSender.SendOtpAsync("09121234567", new OtpCodeRequest(code) { SenderLine = "3000" });
 ```
 
-Passing the wrong shape throws `ArgumentException` with a message naming the provider requirement. `SenderLine`, `SendDate` and `ClientReferenceId` live on the base class and apply to both.
+`OtpSend` alone does not say which shape a provider takes, so check the shape flag before building a request; `Mock` advertises both. Passing the wrong shape throws `ArgumentException` with a message naming the provider requirement. `SenderLine`, `SendDate` and `ClientReferenceId` live on the base class and apply to both.
 
 ## Error handling
 

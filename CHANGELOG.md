@@ -6,6 +6,7 @@
 
 ## [Unreleased]
 
+* پرچم‌های شکل OTP: افزودن `SmsCapabilities.OtpTemplateSend` و `OtpCodeSend` تا مصرف‌کننده پیش از ساخت درخواست بداند provider کدام شکل را می‌پذیرد — Kavenegar/Ghasedak/SMS.ir فقط `OtpTemplateSend`، ملی‌پیامک فقط `OtpCodeSend` و `Mock` هر دو. افزودن `OtpShapeCapabilityTests` برای تثبیت این ماتریس.
 * تصحیح نگاشت وضعیت تحویل بر اساس جداول رسمی providerها: در SMS.ir کد `4` («نرسیده به مخابرات») دیگر `Undelivered` نیست و `Failed` شد، کد `0` که مستند نشده بود حذف شد و به `Unknown` افتاد؛ در Melipayamak کد `16` («نرسیده به مخابرات») به `Failed` و کد `300` («فیلتر شده») به `Blocked` تغییر کرد و کد `200` («ارسال شده») اضافه شد.
 * مستندسازی ماتریس کامل وضعیت delivery هر provider در `IranSms.Core/README.md` به‌همراه توضیح دو تفاوتی که عمداً در enum نرمال فشرده شده‌اند (کد ۱۳ کاوه‌نگار و کدهای ۰/۸/۲۰۰ ملی‌پیامک) و کدهای مجوزی که فقط `Unknown` می‌شوند.
 * افزودن `DeliveryStateMatrixTests` برای پوشش کامل کدهای رسمی هر چهار provider.

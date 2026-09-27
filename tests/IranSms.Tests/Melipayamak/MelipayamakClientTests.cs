@@ -405,7 +405,7 @@ namespace IranSms.Tests.Melipayamak
         {
             var client = CreateClient(new FakeMelipayamakTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.OtpCodeSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
             client.ProviderName.Should().Be("Melipayamak");
         }
     }

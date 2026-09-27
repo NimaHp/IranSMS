@@ -371,7 +371,7 @@ namespace IranSms.Tests.SmsIr
         {
             var client = CreateClient(new FakeSmsIrTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.OtpTemplateSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement);
             client.ProviderName.Should().Be("SmsIr");
         }
     }

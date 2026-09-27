@@ -70,5 +70,18 @@ namespace IranSms
         /// windows apply — Kavenegar only reports the last 12 hours this way.
         /// </summary>
         ClientReferenceLookup = 1 << 15,
+
+        /// <summary>
+        /// OTP sends accept <see cref="OtpTemplateRequest"/> — a provider-registered pattern
+        /// filled with parameters (Kavenegar, Ghasedak, SMS.ir). Check this flag before
+        /// building a template request.
+        /// </summary>
+        OtpTemplateSend = 1 << 16,
+
+        /// <summary>
+        /// OTP sends accept <see cref="OtpCodeRequest"/> — the provider owns the text and
+        /// injects the code (Melipayamak). Check this flag before building a code request.
+        /// </summary>
+        OtpCodeSend = 1 << 17,
     }
 }

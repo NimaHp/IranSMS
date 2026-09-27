@@ -480,7 +480,7 @@ namespace IranSms.Tests.Ghasedak
         {
             var client = CreateClient(new FakeGhasedakTransport());
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.ClientReference);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.OtpTemplateSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.ClientReference);
             client.ProviderName.Should().Be("Ghasedak");
         }
     }

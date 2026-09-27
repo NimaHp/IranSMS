@@ -10,10 +10,11 @@ namespace IranSms
     /// <remarks>
     /// These are two different concepts and are deliberately separate types: a template
     /// is a provider-side registered pattern, while an OTP is the purpose of the message.
-    /// Providers that need a template accept <see cref="OtpTemplateRequest"/>; providers
-    /// that own the message text accept <see cref="OtpCodeRequest"/>. Fields common to
-    /// both shapes live here: <see cref="SenderLine"/>, <see cref="SendDate"/> and
-    /// <see cref="ClientReferenceId"/>.
+    /// Providers that need a template accept <see cref="OtpTemplateRequest"/> — announced by
+    /// <see cref="SmsCapabilities.OtpTemplateSend"/> — and providers that own the message text
+    /// accept <see cref="OtpCodeRequest"/> — announced by
+    /// <see cref="SmsCapabilities.OtpCodeSend"/>. Fields common to both shapes live here:
+    /// <see cref="SenderLine"/>, <see cref="SendDate"/> and <see cref="ClientReferenceId"/>.
     /// </remarks>
     public abstract class OtpRequest
     {

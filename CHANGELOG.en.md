@@ -6,6 +6,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+* OTP shape flags: added `SmsCapabilities.OtpTemplateSend` and `OtpCodeSend` so a caller knows which request shape a provider accepts before building it — Kavenegar/Ghasedak/SMS.ir only `OtpTemplateSend`, Melipayamak only `OtpCodeSend`, and `Mock` both. Added `OtpShapeCapabilityTests` to lock that matrix in.
 * Fixed delivery-status mapping against the providers' official status tables: in SMS.ir code `4` ("not reached the operator") is now `Failed` instead of `Undelivered`, the undocumented `0` was removed and falls through to `Unknown`; in Melipayamak code `16` ("not reached the operator") became `Failed`, code `300` ("filtered") became `Blocked`, and code `200` ("sent") was added.
 * Documented the complete per-provider delivery-state matrix in `IranSms.Core/README.md`, including the two distinctions deliberately collapsed by the normalized enum (Kavenegar code 13, Melipayamak codes 0/8/200) and the authorization codes that only yield `Unknown`.
 * Added `DeliveryStateMatrixTests` covering the complete official code set of all four providers.

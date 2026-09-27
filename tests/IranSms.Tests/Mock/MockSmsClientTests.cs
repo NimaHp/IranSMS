@@ -29,7 +29,7 @@ namespace IranSms.Tests.Mock
         {
             var client = CreateClient();
             client.Capabilities.Should().Be(
-                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup);
+                SmsCapabilities.Send | SmsCapabilities.BulkSend | SmsCapabilities.OtpSend | SmsCapabilities.OtpTemplateSend | SmsCapabilities.OtpCodeSend | SmsCapabilities.DeliveryStatus | SmsCapabilities.AccountInfo | SmsCapabilities.LineManagement | SmsCapabilities.ClientReference | SmsCapabilities.ClientReferenceLookup);
         }
 
         [Fact]

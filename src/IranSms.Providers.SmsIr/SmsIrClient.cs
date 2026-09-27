@@ -50,6 +50,7 @@ namespace IranSms.Providers.SmsIr
             SmsCapabilities.Send
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
+            | SmsCapabilities.OtpTemplateSend
             | SmsCapabilities.DeliveryStatus
             | SmsCapabilities.AccountInfo
             | SmsCapabilities.SenderLines;

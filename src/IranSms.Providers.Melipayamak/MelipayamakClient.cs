@@ -61,6 +61,7 @@ namespace IranSms.Providers.Melipayamak
             SmsCapabilities.Send
             | SmsCapabilities.BulkSend
             | SmsCapabilities.OtpSend
+            | SmsCapabilities.OtpCodeSend
             | SmsCapabilities.DeliveryStatus
             | SmsCapabilities.AccountInfo
             | SmsCapabilities.SenderLines;
